@@ -34,18 +34,15 @@ const Content = () => {
 
 const Links = () => {
   const links = [
-    { name: "X/Twitter", url: "#" },
-    { name: "XHS", url: "#" },
     { name: "Github", url: "#" },
-    { name: "Creative Developer", url: "#" },
     { name: "Discord", url: "#" },
-    { name: "XHS", url: "#" },
+    { name: "LinkedIn", url: "#" },
   ];
   return (
     <div className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8">
-      <div className="flex gap-8 text-neutral-700">
+      <div className="flex flex-col gap-4 items-end text-neutral-700">
         <ul className="flex flex-col space-y-2">
-          {links.slice(0, 3).map((link, index) => (
+          {links.map((link, index) => (
             <li key={index}>
               <a
                 href={link.url}
@@ -58,23 +55,8 @@ const Links = () => {
             </li>
           ))}
         </ul>
-        <ul className="flex flex-col space-y-2">
-          {links.slice(3).map((link, index) => (
-            <li key={index}>
-              <a
-                href={link.url}
-                className="hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.name}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <p className="text-sm text-neutral-900">© 2024 timming</p>
       </div>
-
-      <p className="text-xs text-neutral-900">© 2024 timming</p>
     </div>
   );
 };
@@ -85,9 +67,12 @@ const Nav = () => {
       <header className="flex flex-1 items-center">
         <img src={Logo} alt="logo" className="w-[50px]" />
       </header>
-      <span className="flex flex-1 justify-end items-center">
+      <span className="flex flex-1 justify-end items-center gap-8">
         <a href="#" className="text-sm font-medium hover:underline">
           About
+        </a>
+        <a href="#" className="text-sm font-medium hover:underline">
+          Collections
         </a>
       </span>
     </nav>

@@ -4,6 +4,7 @@ import {
   MeshTransmissionMaterial,
   ScrollControls,
   useCursor,
+  useFBO,
   useScroll,
 } from "@react-three/drei";
 import { Canvas, GroupProps, ThreeEvent, useFrame } from "@react-three/fiber";
@@ -12,6 +13,7 @@ import { useRef, useState } from "react";
 import * as THREE from "three";
 import { RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
+import { lerp } from "three/src/math/MathUtils.js";
 
 export default function Background({}) {
   const radius = 2;
@@ -120,7 +122,6 @@ function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
       // Adjust material properties
       easing.damp(mesh.material, "radius", hovered ? 0.25 : 0.1, 0.2, delta);
       easing.damp(mesh.material, "zoom", hovered ? 1 : 1.5, 0.2, delta);
-      easing.damp(mesh.material, "opacity", hovered ? 1 : 0.5, 0.2, delta);
     });
   });
 
@@ -142,11 +143,27 @@ function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
 }
 
 function Sphere({ radius }: { radius: number }) {
+  const [hovered, hover] = useState(false);
+
+  const pointerOver = (e: ThreeEvent<PointerEvent>) => (
+    e.stopPropagation(), hover(true)
+  );
+  const pointerOut = () => hover(false);
+  const [distortion, setDistortion] = useState(0);
+  const [distortionScale, setDistortionScale] = useState(0);
+  const [transmission, setTransmission] = useState(0.9);
+  useCursor(hovered);
+  useFrame((_, delta) => {
+    setDistortion((v) => lerp(v, hovered ? 0.5 : 0.2, delta));
+    setDistortionScale((v) => lerp(v, hovered ? 0.3 : 2, delta));
+    setTransmission((v) => lerp(v, hovered ? 0.7 : 0.9, delta * 2));
+  });
   return (
     <mesh
       position={[0, 0, 0]}
       castShadow
-      onPointerOver={(e) => e.stopPropagation()}
+      onPointerOver={pointerOver}
+      onPointerOut={pointerOut}
     >
       <sphereGeometry args={[radius, 64, 32]} />
       <MeshTransmissionMaterial
@@ -155,10 +172,10 @@ function Sphere({ radius }: { radius: number }) {
         thickness={5}
         chromaticAberration={0.02}
         // anisotropy={0.05}
-        distortion={0.2}
-        distortionScale={2}
-        temporalDistortion={0.1}
-        transmission={0.9}
+        distortion={distortion}
+        distortionScale={distortionScale}
+        temporalDistortion={0.2}
+        transmission={transmission}
       />
     </mesh>
   );
