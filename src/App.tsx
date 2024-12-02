@@ -1,4 +1,3 @@
-import React, { useRef } from "react";
 import Logo from "./assets/logo.svg";
 import Background from "./Background";
 

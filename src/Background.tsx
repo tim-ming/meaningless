@@ -6,11 +6,12 @@ import {
   useCursor,
   useScroll,
 } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, GroupProps, ThreeEvent, useFrame } from "@react-three/fiber";
 import { easing } from "maath";
 import { useRef, useState } from "react";
 import * as THREE from "three";
 import { RoundedRectangle } from "./helpers/utils";
+import { Group } from "three";
 
 export default function Background({}) {
   const radius = 2;
@@ -47,14 +48,15 @@ export default function Background({}) {
   );
 }
 
-function Rig(props) {
-  const outerRef = useRef();
-  const ref = useRef();
+function Rig(props: GroupProps) {
+  const outerRef = useRef<Group>(null);
+  const ref = useRef<Group>(null);
   const scroll = useScroll();
   useFrame((state, delta) => {
-    easing.damp3(outerRef.current.rotation, [0, 0, 0], 1, delta); // Rotate carousel
-    ref.current.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
-    state.events.update(); // Raycasts every frame rather than on pointer-move
+    easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
+    ref.current!.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
+    state.events.update!(); // Raycasts every frame rather than on pointer-move
+
     easing.damp3(
       state.camera.position,
       [-state.pointer.x * 5, state.pointer.y * 2 + 3, state.pointer.y / 2 + 30],
@@ -75,7 +77,7 @@ function Carousel({ radius = 2, count = 10 }) {
   return Array.from({ length: count }, (_, i) => (
     <Card
       key={i}
-      url={`/${Math.floor(i % 10) + 1}.png`}
+      imageUrl={`/${Math.floor(i % 10) + 1}.png`}
       position={[
         Math.sin((i / count) * Math.PI * 2) * radius,
         0,
@@ -86,7 +88,11 @@ function Carousel({ radius = 2, count = 10 }) {
   ));
 }
 
-function Card({ cardSize = 1, url, ...props }) {
+interface CardProps extends GroupProps {
+  cardSize?: number;
+  imageUrl: string;
+}
+function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
   const backPlateSize = cardSize * 1.1;
   const backPlateGeometry = RoundedRectangle(
     backPlateSize,
@@ -95,22 +101,26 @@ function Card({ cardSize = 1, url, ...props }) {
     10
   );
 
-  const ref = useRef();
+  const ref = useRef<Group>(null);
   const [hovered, hover] = useState(false);
 
-  const pointerOver = (e) => (e.stopPropagation(), hover(true));
+  const pointerOver = (e: ThreeEvent<PointerEvent>) => (
+    e.stopPropagation(), hover(true)
+  );
   const pointerOut = () => hover(false);
 
   useCursor(hovered);
-  useFrame((state, delta) => {
-    ref.current.children.forEach((child) => {
+  useFrame((_, delta) => {
+    ref.current!.children.forEach((child) => {
+      const mesh = child as THREE.Mesh;
+
       // Adjust scale when hovered
-      easing.damp3(child.scale, hovered ? 1.15 : 1, 0.1, delta);
+      easing.damp3(mesh.scale, hovered ? 1.15 : 1, 0.1, delta);
 
       // Adjust material properties
-      easing.damp(child.material, "radius", hovered ? 0.25 : 0.1, 0.2, delta);
-      easing.damp(child.material, "zoom", hovered ? 1 : 1.5, 0.2, delta);
-      easing.damp(child.material, "opacity", hovered ? 1 : 1, 0.2, delta);
+      easing.damp(mesh.material, "radius", hovered ? 0.25 : 0.1, 0.2, delta);
+      easing.damp(mesh.material, "zoom", hovered ? 1 : 1.5, 0.2, delta);
+      easing.damp(mesh.material, "opacity", hovered ? 1 : 0.5, 0.2, delta);
     });
   });
 
@@ -121,7 +131,7 @@ function Card({ cardSize = 1, url, ...props }) {
       ref={ref}
       {...props}
     >
-      <Image url={url} transparent side={THREE.DoubleSide} castShadow>
+      <Image url={imageUrl} transparent side={THREE.DoubleSide} castShadow>
         <planeGeometry args={[1, 1]} />
       </Image>
       <mesh position={[0, 0, 0.01]} castShadow geometry={backPlateGeometry}>
@@ -131,7 +141,7 @@ function Card({ cardSize = 1, url, ...props }) {
   );
 }
 
-function Sphere({ radius }) {
+function Sphere({ radius }: { radius: number }) {
   return (
     <mesh
       position={[0, 0, 0]}
@@ -154,7 +164,7 @@ function Sphere({ radius }) {
   );
 }
 
-function Ground({ yPos }) {
+function Ground({ yPos }: { yPos: number }) {
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, yPos, 0]}>
       <circleGeometry args={[4, 100]} />
