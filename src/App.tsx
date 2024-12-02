@@ -6,7 +6,7 @@ const App = () => {
   return (
     <div className="h-screen flex w-screen flex-col relative items-center justify-center bg-gray-100 text-gray-900">
       <Background />
-      <div className="p-8 h-full w-full absolute">
+      <div className="p-8 h-full w-full pointer-events-none">
         <Nav />
         <Content />
         <Footer />
