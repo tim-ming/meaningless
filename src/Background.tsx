@@ -4,7 +4,6 @@ import {
   MeshTransmissionMaterial,
   ScrollControls,
   useCursor,
-  useFBO,
   useScroll,
 } from "@react-three/drei";
 import { Canvas, GroupProps, ThreeEvent, useFrame } from "@react-three/fiber";
@@ -35,7 +34,7 @@ export default function Background({}) {
             decay={0}
             castShadow
           />
-          <ScrollControls pages={4} infinite damping={0.15}>
+          <ScrollControls pages={3} infinite maxSpeed={2}>
             <Rig>
               <Carousel radius={radius} />
             </Rig>
