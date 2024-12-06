@@ -1,0 +1,62 @@
+[
+  {
+    "id": "01",
+    "title": "Artwork 1",
+    "description": "The island features a sprawling landscape with lush greenery, winding rivers, and illuminated pathways that give it a lively, inhabited feel. The overall ambiance is serene yet otherworldly, emphasized by the presence of swirling, ethereal light trails that encircle the island, adding a sense of dynamic motion and magic. The island appears to be drifting above a layer of clouds, with the distant horizon blending into a soft, dreamlike sky. The intricate details and imaginative elements create a captivating scene that invites viewers to explore the possibilities of a surreal, floating world.",
+    "image": "1.png"
+  },
+  {
+    "id": "02",
+    "title": "Artwork 2",
+    "description": "Description for Artwork 2",
+    "image": "2.png"
+  },
+  {
+    "id": "03",
+    "title": "Artwork 3",
+    "description": "Description for Artwork 3",
+    "image": "3.png"
+  },
+  {
+    "id": "04",
+    "title": "Artwork 4",
+    "description": "Description for Artwork 4",
+    "image": "4.png"
+  },
+  {
+    "id": "05",
+    "title": "Artwork 5",
+    "description": "Description for Artwork 5",
+    "image": "5.png"
+  },
+  {
+    "id": "06",
+    "title": "Artwork 6",
+    "description": "Description for Artwork 6",
+    "image": "6.png"
+  },
+  {
+    "id": "07",
+    "title": "Artwork 7",
+    "description": "Description for Artwork 7",
+    "image": "7.png"
+  },
+  {
+    "id": "08",
+    "title": "Artwork 8",
+    "description": "Description for Artwork 8",
+    "image": "8.png"
+  },
+  {
+    "id": "09",
+    "title": "Artwork 9",
+    "description": "Description for Artwork 9",
+    "image": "9.png"
+  },
+  {
+    "id": "10",
+    "title": "Artwork 10",
+    "description": "Description for Artwork 10",
+    "image": "10.png"
+  }
+]

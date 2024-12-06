@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 :root {
+  --nav-height-mobile: 48px;
+  --nav-height-tablet: 54px;
+  --nav-height-laptop: 60px;
+  --nav-height-desktop: 60px;
+  --padding-mobile: 16px;
+  --padding-tablet: 24px;
+  --padding-laptop: 32px;
+  --padding-desktop: 40px;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
   font-synthesis: none;
@@ -11,7 +19,48 @@
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.05;
   letter-spacing: -0.05em;
+  --nav-height: var(--nav-height-mobile);
+  --padding: var(--padding-mobile);
 }
+
+body {
+  max-width: 1280px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --nav-height: var(--nav-height-tablet);
+    --padding: var(--padding-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --nav-height: var(--nav-height-laptop);
+    --padding: var(--padding-laptop);
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --nav-height: var(--nav-height-desktop);
+    --padding: var(--padding-desktop);
+  }
+}
+
+.wrapper {
+  padding: var(--padding);
+}
+
+button {
+  pointer-events: all;
+}
+
+a {
+  pointer-events: all;
+}
+
+/* Hide scrollbar */
 ::-webkit-scrollbar {
   display: none;
 }
@@ -19,20 +68,8 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-button {
-  pointer-events: all;
-}
-
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
-
-/* body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-} */

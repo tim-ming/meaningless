@@ -1,21 +1,22 @@
-import Logo from "./assets/logo.svg";
+import { Link, useNavigate } from "react-router";
 import Background from "./Background";
+import Wrapper from "./components/Wrapper";
 
 const App = () => {
   return (
-    <div className="h-screen flex w-screen flex-col relative items-center justify-center bg-gray-100 text-gray-900">
+    <>
       <Background />
-      <div className="p-8 h-full w-full pointer-events-none">
-        <Nav />
+      <Wrapper extraClassName="pointer-events-none">
         <Content />
         <Footer />
         <Links />
-      </div>
-    </div>
+      </Wrapper>
+    </>
   );
 };
 
 const Content = () => {
+  const navigate = useNavigate();
   return (
     <main className="absolute top-[15%] left-0 right-0">
       <div className="flex-col flex gap-8 items-center justify-center">
@@ -23,7 +24,10 @@ const Content = () => {
           Within every picture holds no story.
         </h1>
         <span>
-          <button className="w-[160px] h-[50px] border-neutral-900 border-[1px] rounded-lg">
+          <button
+            onClick={() => navigate("/collections")}
+            className="w-[160px] h-[50px] border-neutral-900 border-[1px] rounded-lg"
+          >
             Take a look →
           </button>
         </span>
@@ -44,38 +48,20 @@ const Links = () => {
         <ul className="flex flex-col space-y-2">
           {links.map((link, index) => (
             <li key={index}>
-              <a
-                href={link.url}
+              <Link
+                to={link.url}
                 className="hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 {link.name}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
         <p className="text-sm text-neutral-900">© 2024 timming</p>
       </div>
     </div>
-  );
-};
-
-const Nav = () => {
-  return (
-    <nav className="absolute top-0 left-0 flex w-full p-[inherit] justify-center">
-      <header className="flex flex-1 items-center">
-        <img src={Logo} alt="logo" className="w-[50px]" />
-      </header>
-      <span className="flex flex-1 justify-end items-center gap-8">
-        <a href="#" className="text-sm font-medium hover:underline">
-          About
-        </a>
-        <a href="#" className="text-sm font-medium hover:underline">
-          Collections
-        </a>
-      </span>
-    </nav>
   );
 };
 

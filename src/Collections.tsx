@@ -1,80 +1,67 @@
+import { Link } from "react-router";
+import data from "./assets/collections.json";
+import ScrollToAnchor from "./components/ScrollToAnchor";
+
 const Collections = () => {
-  const collections = [
-    "Twisted Dragon",
-    "Celestial Haven",
-    "Guardian of the Abyss",
-    "Warrior of the Nebula",
-    "Twisted Dragon",
-    "Celestial Haven",
-    "Guardian of the Abyss",
-    "Warrior of the Nebula",
-  ];
-
   return (
-    <div className="flex min-h-screen bg-gray-100 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-1/4 p-8 bg-white border-r border-gray-300">
-        <h1 className="text-3xl font-bold mb-8">Collections</h1>
-        <ul className="space-y-4">
-          {collections.map((item, index) => (
-            <li key={index} className="text-lg hover:underline">
-              {item}
-            </li>
-          ))}
-        </ul>
-      </aside>
+    <>
+      <ScrollToAnchor />
 
-      {/* Main Content */}
-      <main className="w-3/4 p-8">
-        {/* First Collection */}
-        <section className="mb-16">
-          <header className="flex justify-between items-start mb-4">
-            <h2 className="text-3xl font-bold">Twisted Dragon</h2>
-            <span className="text-xl font-semibold text-gray-400">01</span>
-          </header>
-          <div className="flex space-x-8">
-            <p className="w-1/2 text-sm text-gray-700">
-              AI-generated images often lack emotions because they are created
-              using mathematical algorithms and neural networks, which interpret
-              visual elements as data points rather than emotional expressions.
-            </p>
-            <p className="w-1/2 text-sm text-gray-700">
-              While advanced AI models can mimic facial expressions, colors, and
-              compositions associated with emotions, they do not truly feel or
-              understand the emotions they attempt to replicate.
-            </p>
-          </div>
-          <div className="mt-8">
-            <img
-              src="https://via.placeholder.com/800x600"
-              alt="Twisted Dragon"
-              className="w-full object-cover rounded-lg shadow"
-            />
-          </div>
-          <footer className="text-right text-gray-400 text-lg mt-2">01</footer>
-        </section>
+      <div className="mt-[var(--nav-height)] w-screen min-h-screen flex justify-center">
+        <span className="fixed border-t-[1px] w-screen"></span>
+        <div className="grid grid-cols-2 relative justify-center border-x-[1px]">
+          {/* Sidebar */}
+          <aside className="px-[var(--padding)] max-w-[720px] relative pt-6 border-r border-gray-300">
+            <div className="fixed flex flex-col gap-20">
+              <h1 className="text-5xl leading-[1.05] tracking-[-0.05em] font-semibold">
+                Collections
+              </h1>
+              <ul className="flex flex-col gap-1">
+                {data.map((item, index) => (
+                  <div key={index}>
+                    <Link
+                      to={`/collections#${item.id}`}
+                      className="text-lg leading-[1.05] tracking-[-0.05em] hover:underline"
+                    >
+                      {item.title}
+                    </Link>
+                  </div>
+                ))}
+              </ul>
+            </div>
+          </aside>
 
-        {/* Duplicate Section */}
-        <section>
-          <header className="flex justify-between items-start mb-4">
-            <h2 className="text-3xl font-bold">Twisted Dragon</h2>
-            <span className="text-xl font-semibold text-gray-400">01</span>
-          </header>
-          <div className="flex space-x-8">
-            <p className="w-1/2 text-sm text-gray-700">
-              AI-generated images often lack emotions because they are created
-              using mathematical algorithms and neural networks, which interpret
-              visual elements as data points rather than emotional expressions.
-            </p>
-            <p className="w-1/2 text-sm text-gray-700">
-              While advanced AI models can mimic facial expressions, colors, and
-              compositions associated with emotions, they do not truly feel or
-              understand the emotions they attempt to replicate.
-            </p>
-          </div>
-        </section>
-      </main>
-    </div>
+          {/* Main Content */}
+          <main className=" max-w-[720px]">
+            {data.map((item, _) => (
+              <section className="flex flex-col" id={item.id} key={item.id}>
+                <div className="mb-4">
+                  <img
+                    src={item.image}
+                    alt="Twisted Dragon"
+                    className="w-full object-cover p-6"
+                  />
+                </div>
+                <header className="flex justify-between items-start mb-4 px-6">
+                  <h2 className="text-3xl font-semibold leading-[1.05] tracking-[-0.05em]">
+                    {item.title}
+                  </h2>
+                </header>
+                <div className="flex space-x-8 px-6">
+                  <p className="text-neutral-600 leading-[1.15] tracking-[-0.04em]">
+                    {item.description}
+                  </p>
+                </div>
+                <span className="text-xl my-16 font-medium text-neutral-800 px-6">
+                  {item.id}
+                </span>
+                <span className="border-b-[1px] w-full mt-8" />
+              </section>
+            ))}
+          </main>
+        </div>
+      </div>
+    </>
   );
 };
 

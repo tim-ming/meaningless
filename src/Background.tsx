@@ -13,6 +13,8 @@ import * as THREE from "three";
 import { RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
 import { lerp } from "three/src/math/MathUtils.js";
+import data from "./assets/collections.json";
+import { useNavigate } from "react-router";
 
 export default function Background({}) {
   const radius = 2;
@@ -74,17 +76,18 @@ function Rig(props: GroupProps) {
   );
 }
 
-function Carousel({ radius = 2, count = 10 }) {
-  return Array.from({ length: count }, (_, i) => (
+function Carousel({ radius = 2 }) {
+  return data.map((item, i) => (
     <Card
-      key={i}
-      imageUrl={`/${Math.floor(i % 10) + 1}.png`}
+      key={item.id}
+      imageUrl={item.image}
+      imageId={item.id}
       position={[
-        Math.sin((i / count) * Math.PI * 2) * radius,
+        Math.sin((i / data.length) * Math.PI * 2) * radius,
         0,
-        Math.cos((i / count) * Math.PI * 2) * radius,
+        Math.cos((i / data.length) * Math.PI * 2) * radius,
       ]}
-      rotation={[0, Math.PI + (i / count) * Math.PI * 2, 0]}
+      rotation={[0, Math.PI + (i / data.length) * Math.PI * 2, 0]}
     />
   ));
 }
@@ -92,8 +95,9 @@ function Carousel({ radius = 2, count = 10 }) {
 interface CardProps extends GroupProps {
   cardSize?: number;
   imageUrl: string;
+  imageId: string;
 }
-function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
+function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
   const backPlateSize = cardSize * 1.1;
   const backPlateGeometry = RoundedRectangle(
     backPlateSize,
@@ -101,7 +105,7 @@ function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
     0.1,
     10
   );
-
+  const navigate = useNavigate();
   const ref = useRef<Group>(null);
   const [hovered, hover] = useState(false);
 
@@ -130,6 +134,7 @@ function Card({ cardSize = 1, imageUrl = "", ...props }: CardProps) {
       onPointerOut={pointerOut}
       ref={ref}
       {...props}
+      onClick={() => navigate(`/collections#${imageId}`)}
     >
       <Image url={imageUrl} transparent side={THREE.DoubleSide} castShadow>
         <planeGeometry args={[1, 1]} />
