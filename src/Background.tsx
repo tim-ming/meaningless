@@ -6,7 +6,13 @@ import {
   useCursor,
   useScroll,
 } from "@react-three/drei";
-import { Canvas, GroupProps, ThreeEvent, useFrame } from "@react-three/fiber";
+import {
+  Canvas,
+  GroupProps,
+  MeshProps,
+  ThreeEvent,
+  useFrame,
+} from "@react-three/fiber";
 import { easing } from "maath";
 import { useRef, useState } from "react";
 import * as THREE from "three";
@@ -20,7 +26,7 @@ export default function Background({}) {
   const radius = 2;
   const circleRadius = radius / 2;
   return (
-    <div className=" absolute w-full h-full top-0 left-0">
+    <div className="absolute w-full h-full top-0 left-0">
       <Canvas
         camera={{ position: [0, 0, 100], fov: 15 }}
         eventPrefix="client"
@@ -145,8 +151,11 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
     </group>
   );
 }
+interface SphereProps extends MeshProps {
+  radius: number;
+}
 
-function Sphere({ radius }: { radius: number }) {
+function Sphere({ radius, ...props }: SphereProps) {
   const [hovered, hover] = useState(false);
 
   const pointerOver = (e: ThreeEvent<PointerEvent>) => (
