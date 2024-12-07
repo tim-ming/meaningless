@@ -74,36 +74,20 @@ a {
   scrollbar-width: none; /* Firefox */
 }
 
-.clip-hide {
+.clip {
   clip-path: inset(100% 0 0 0);
-  animation: hide 1s forwards ease-in-out;
+  animation: reveal var(--transition-duration) forwards ease-in-out;
   background-color: #000;
-}
-
-.clip-reveal {
-  clip-path: inset(0 0 0 0);
-  animation: reveal 1s forwards ease-in-out;
-  background-color: #000;
-}
-
-@keyframes hide {
-  0% {
-    clip-path: inset(0 0 0 0);
-  }
-  100% {
-    clip-path: inset(0 0 100% 0);
-  }
 }
 
 @keyframes reveal {
   0% {
-    clip-path: inset(0 0 100% 0);
+    clip-path: inset(100% 0 0 0);
   }
-  100% {
+  50% {
     clip-path: inset(0 0 0 0);
   }
-}
-
-.hidden {
-  display: none;
+  100% {
+    clip-path: inset(0 0 100% 0);
+  }
 }

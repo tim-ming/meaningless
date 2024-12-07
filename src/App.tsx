@@ -1,10 +1,12 @@
 import { Link, useNavigate } from "react-router";
 import Background from "./Background";
 import Wrapper from "./components/Wrapper";
+import Transitioner from "./components/Transitioner";
 
 const App = () => {
   return (
     <>
+      <Transitioner />
       <Background />
       <Wrapper extraClassName="pointer-events-none">
         <Content />

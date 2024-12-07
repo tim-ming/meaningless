@@ -12,6 +12,8 @@ import {
 import * as THREE from "three";
 import { useLocation } from "react-router";
 import { motion, usePresence } from "motion/react";
+import { useTransitioningStore } from "./stores";
+import { TRANSITION } from "./helpers/constants";
 
 const Scene = () => {
   return (
@@ -49,33 +51,27 @@ const Sphere = () => {
 const Loading: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
 
+  const transitioning = useTransitioningStore((state) => state.transitioning);
+
+  useEffect(() => {
+    if (!transitioning) {
+      ref.current!.classList.remove("hidden");
+      ref.current!.classList.add("clip");
+      setTimeout(() => {
+        ref.current!.classList.add("hidden");
+        ref.current!.classList.remove("clip");
+      }, TRANSITION.DURATION_S * 1000);
+    }
+    console.log(transitioning);
+  }, [transitioning]);
+
   return (
     <>
-      <motion.div
-        ref={ref}
-        className="absolute w-full h-full top-0 left-0"
-        initial={{ clipPath: "inset(0 0 100% 0)" }}
-        animate={{ clipPath: ["inset(0 0 100% 0)", "inset(0 0 0 0)"] }}
-        exit={{ clipPath: "inset(0 0 100% 0)" }}
-        transition={{ duration: 1 }}
-      >
+      <div ref={ref} className="absolute w-full h-full top-0 left-0 z-[99999]">
         <Canvas shadows camera={{ position: [0, 0, 3], fov: 90 }}>
           <Scene />
         </Canvas>
-      </motion.div>
-
-      <motion.div
-        ref={ref}
-        className="absolute w-full h-full top-0 left-0"
-        initial={{ clipPath: "inset(0 0 0 0)" }}
-        animate={{ clipPath: ["inset(0 0 0 0)", "inset(0 0 100% 0)"] }}
-        exit={{ clipPath: "inset(0 0 0 0)" }}
-        transition={{ duration: 1 }}
-      >
-        <Canvas shadows camera={{ position: [0, 0, 3], fov: 90 }}>
-          <Scene />
-        </Canvas>
-      </motion.div>
+      </div>
     </>
   );
 };
