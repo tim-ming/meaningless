@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import data from "./assets/collections.json";
 import ScrollToAnchor from "./components/ScrollToAnchor";
-import { useTransitioningStore } from "./stores";
+import { useTransitionStore } from "./stores";
 import { useEffect } from "react";
 import { usePresence } from "motion/react";
 import { TRANSITION } from "./helpers/constants";

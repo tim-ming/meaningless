@@ -1,21 +1,36 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
 import {
   Center,
-  Environment,
   MeshTransmissionMaterial,
   OrbitControls,
-  Plane,
+  PerformanceMonitor,
   Text3D,
-  useHelper,
 } from "@react-three/drei";
-import * as THREE from "three";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { easing } from "maath";
+import { useInView } from "motion/react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
-import { motion, usePresence } from "motion/react";
-import { useTransitioningStore } from "./stores";
 import { TRANSITION } from "./helpers/constants";
+import { useTransitionStore } from "./stores";
 
 const Scene = () => {
+  const { transitioning } = useTransitionStore();
+  useFrame((state, delta) => {
+    console.log(state.camera.position, transitioning);
+    if (transitioning) {
+      easing.damp3(
+        state.camera.position,
+        [0, 2, 3],
+        0.2,
+        delta,
+        0.4,
+        easing.expo.inOut
+      ); // Move camera
+    } else {
+      state.camera.position.set(0, -2, 3);
+    }
+  });
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -50,11 +65,13 @@ const Sphere = () => {
 
 const Loading: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
+  const [dpr, setDpr] = useState(1);
+  const { willTransition } = useTransitionStore();
 
-  const transitioning = useTransitioningStore((state) => state.transitioning);
-
+  const inView = useInView(ref);
   useEffect(() => {
-    if (!transitioning) {
+    console.log("willTransition:", willTransition);
+    if (willTransition) {
       ref.current!.classList.remove("hidden");
       ref.current!.classList.add("clip");
       setTimeout(() => {
@@ -62,13 +79,21 @@ const Loading: React.FC = () => {
         ref.current!.classList.remove("clip");
       }, TRANSITION.DURATION_S * 1000);
     }
-    console.log(transitioning);
-  }, [transitioning]);
+  }, [willTransition]);
 
   return (
     <>
-      <div ref={ref} className="absolute w-full h-full top-0 left-0 z-[99999]">
-        <Canvas shadows camera={{ position: [0, 0, 3], fov: 90 }}>
+      <div
+        ref={ref}
+        className="fixed w-full h-full top-0 left-0 z-[99999] hidden"
+      >
+        <Canvas
+          gl={{ antialias: false }}
+          frameloop={inView ? "always" : "never"}
+          // frameloop={"always"}
+          dpr={1.5}
+          camera={{ position: [0, -2, 3], fov: 90 }}
+        >
           <Scene />
         </Canvas>
       </div>
@@ -91,7 +116,7 @@ const Title = () => {
     }
   }, [location.pathname]);
   return (
-    <Center position={[0, 0, -8]}>
+    <Center cacheKey={text} position={[0, 0, -8]}>
       <Text3D
         letterSpacing={-0.1}
         font="/Inter_Semibold.json"

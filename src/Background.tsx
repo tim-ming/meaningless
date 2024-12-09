@@ -2,6 +2,7 @@ import {
   Image,
   MeshReflectorMaterial,
   MeshTransmissionMaterial,
+  PerformanceMonitor,
   ScrollControls,
   useCursor,
   useScroll,
@@ -23,39 +24,55 @@ import data from "./assets/collections.json";
 import { useNavigate } from "react-router";
 
 export default function Background({}) {
-  const radius = 2;
-  const circleRadius = radius / 2;
+  const [dpr, setDpr] = useState(1.5);
   return (
-    <div className="absolute w-full h-full top-0 left-0">
+    <div className="absolute w-screen h-screen top-0 left-0">
       <Canvas
         camera={{ position: [0, 0, 100], fov: 15 }}
         eventPrefix="client"
         shadows
+        frameloop="demand"
+        // frameloop="never"
+        dpr={dpr}
       >
-        <group rotation={[0, 0, 0.2]}>
-          {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
-          <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
-          <spotLight
-            angle={0.8}
-            position={[0, 5, 0]}
-            intensity={0.5}
-            decay={0}
-            castShadow
-          />
-          <ScrollControls pages={3} infinite maxSpeed={2}>
-            <Rig>
-              <Carousel radius={radius} />
-            </Rig>
-          </ScrollControls>
-
-          <Sphere radius={circleRadius} />
-          <Ground yPos={-circleRadius} />
-        </group>
+        <PerformanceMonitor
+          onIncline={() => setDpr(2)}
+          onDecline={() => setDpr(1)}
+          flipflops={3}
+        >
+          <Scene />
+        </PerformanceMonitor>
         {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
       </Canvas>
     </div>
   );
 }
+
+const Scene = () => {
+  const radius = 2;
+  const circleRadius = radius / 2;
+  return (
+    <group rotation={[0, 0, 0.2]}>
+      {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
+      <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
+      <spotLight
+        angle={0.8}
+        position={[0, 5, 0]}
+        intensity={0.5}
+        decay={0}
+        castShadow
+      />
+      <ScrollControls pages={3} infinite maxSpeed={2} distance={0.5}>
+        <Rig>
+          <Carousel radius={radius} />
+        </Rig>
+      </ScrollControls>
+
+      <Sphere radius={circleRadius} />
+      <Ground yPos={-circleRadius} />
+    </group>
+  );
+};
 
 function Rig(props: GroupProps) {
   const outerRef = useRef<Group>(null);
