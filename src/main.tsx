@@ -15,13 +15,13 @@ import SuspenseOverlay from "./SuspenseOverlay.tsx";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <Suspense fallback={<SuspenseOverlay />}>
-        <Overlay />
-        <Background />
-        <InitialiseCSSVariable />
-        <AnimatedRoutes />
-        <Nav />
-      </Suspense>
+      {/* <Suspense fallback={<SuspenseOverlay />}> */}
+      <Overlay />
+      <Background />
+      <InitialiseCSSVariable />
+      <AnimatedRoutes />
+      <Nav />
+      {/* </Suspense> */}
     </BrowserRouter>
   </StrictMode>
 );

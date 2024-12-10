@@ -1,6 +1,8 @@
 import {
   Center,
   MeshTransmissionMaterial,
+  OrbitControls,
+  PerspectiveCamera,
   Preload,
   Text3D,
 } from "@react-three/drei";
@@ -30,16 +32,12 @@ const Overlay: React.FC = () => {
 
   return (
     <>
-      <div
-        ref={ref}
-        className="fixed w-full h-full top-0 left-0 z-[99999] loading"
-      >
+      <div ref={ref} className="fixed w-full h-full top-0 left-0 z-[99999] ">
         <Canvas
           gl={{ antialias: false }}
           frameloop={inView ? "always" : "never"}
           // frameloop={"always"}
           dpr={dpr}
-          camera={{ fov: 90 }}
         >
           <Scene />
           <Preload all />
@@ -56,13 +54,13 @@ const Scene = () => {
     if (transitioning) {
       easing.damp3(
         state.camera.position,
-        [0, 2, 5],
+        [0, 2, 3],
         TRANSITION.DURATION_S / 1.5,
         delta,
         Infinity
       );
     } else {
-      state.camera.position.set(0, -2, 5);
+      state.camera.position.set(0, -2, 3);
     }
   });
 
@@ -72,6 +70,7 @@ const Scene = () => {
       <Sphere />
 
       <Title />
+      <PerspectiveCamera fov={90} position={[0, 0, 3]} makeDefault />
       <color attach="background" args={["#000"]} />
     </>
   );
