@@ -5,7 +5,7 @@ import {
   PerformanceMonitor,
   Text3D,
 } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { easing } from "maath";
 import { useInView } from "motion/react";
 import React, { useEffect, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { useTransitionStore } from "./stores";
 
 const Scene = () => {
   const { transitioning } = useTransitionStore();
+  const state = useThree();
   useFrame((state, delta) => {
     if (transitioning) {
       easing.damp3(
@@ -28,6 +29,7 @@ const Scene = () => {
     } else {
       state.camera.position.set(0, -2, 3);
     }
+    console.log(delta);
   });
 
   return (
@@ -65,30 +67,25 @@ const Sphere = () => {
 const Loading: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [dpr, setDpr] = useState(1);
-  const { willTransition } = useTransitionStore();
-
+  const { transitioning } = useTransitionStore();
   const inView = useInView(ref);
   useEffect(() => {
-    if (willTransition) {
+    if (transitioning) {
       ref.current!.classList.remove("hidden");
       ref.current!.classList.add("clip");
-      setTimeout(() => {
-        ref.current!.classList.add("hidden");
-        ref.current!.classList.remove("clip");
-      }, TRANSITION.DURATION_S * 1000);
+    } else {
+      ref.current!.classList.remove("clip");
+      ref.current!.classList.add("hidden");
     }
-  }, [willTransition]);
+  }, [transitioning]);
 
   return (
     <>
-      <div
-        ref={ref}
-        className="fixed w-full h-full top-0 left-0 z-[99999] hidden"
-      >
+      <div ref={ref} className="fixed w-full h-full top-0 left-0 z-[99999]">
         <Canvas
           gl={{ antialias: false }}
-          frameloop={inView ? "always" : "never"}
-          // frameloop={"always"}
+          // frameloop={inView ? "always" : "never"}
+          frameloop={"always"}
           dpr={1.5}
           camera={{ position: [0, -2, 3], fov: 90 }}
         >

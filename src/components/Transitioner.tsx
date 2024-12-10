@@ -4,16 +4,17 @@ import { TRANSITION } from "../helpers/constants";
 import { useTransitionStore } from "../stores";
 
 const Transitioner = () => {
-  const { setWillTransition, setTransitioning } = useTransitionStore();
+  const { setTransitioning } = useTransitionStore();
   const [isPresent, safeToRemove] = usePresence();
 
   useEffect(() => {
-    setWillTransition(!isPresent);
     if (!isPresent) {
       setTransitioning(!isPresent);
+
       setTimeout(() => {
         setTransitioning(isPresent);
       }, TRANSITION.DURATION_S * 1000);
+
       !isPresent &&
         setTimeout(() => {
           safeToRemove();
