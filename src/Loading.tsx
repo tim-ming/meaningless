@@ -16,7 +16,6 @@ import { useTransitionStore } from "./stores";
 const Scene = () => {
   const { transitioning } = useTransitionStore();
   useFrame((state, delta) => {
-    console.log(state.camera.position, transitioning);
     if (transitioning) {
       easing.damp3(
         state.camera.position,
@@ -70,7 +69,6 @@ const Loading: React.FC = () => {
 
   const inView = useInView(ref);
   useEffect(() => {
-    console.log("willTransition:", willTransition);
     if (willTransition) {
       ref.current!.classList.remove("hidden");
       ref.current!.classList.add("clip");

@@ -31,7 +31,6 @@ createRoot(document.getElementById("root")!).render(
 
 function AnimatedRoutes() {
   const location = useLocation();
-  console.log(location);
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
