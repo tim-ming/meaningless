@@ -21,15 +21,16 @@ const Scene = () => {
       easing.damp3(
         state.camera.position,
         [0, 2, 3],
-        0.2,
+        TRANSITION.DURATION_S / 1.5,
         delta,
-        0.4,
-        easing.expo.inOut
+        Infinity
+
+        // easing.quart.inOut
       ); // Move camera
+      console.log(state.camera.position);
     } else {
       state.camera.position.set(0, -2, 3);
     }
-    console.log(delta);
   });
 
   return (
