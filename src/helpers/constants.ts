@@ -1,3 +1,3 @@
 export const TRANSITION = {
-  DURATION_S: 1.5,
+  DURATION_S: 1.2,
 };

@@ -76,18 +76,41 @@ a {
 
 .clip {
   clip-path: inset(100% 0 0 0);
-  animation: reveal var(--transition-duration) forwards ease-in-out;
+  animation: slide-in-out var(--transition-duration) forwards;
   background-color: #000;
 }
 
-@keyframes reveal {
+@keyframes slide-in-out {
   0% {
     clip-path: inset(100% 0 0 0);
+    animation-timing-function: ease-out;
   }
   35% {
     clip-path: inset(0 0 0 0);
+    animation-timing-function: steps(1, end);
   }
-  70% {
+  65% {
+    clip-path: inset(0 0 0 0);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+.loading {
+  clip-path: inset(0 0 0 0);
+  background-color: #000;
+}
+
+.load-in {
+  animation: hide calc(var(--transition-duration) / 2) forwards
+    cubic-bezier(0.07, 0.87, 0.58, 1);
+  animation-delay: calc(var(--transition-duration) * 2);
+}
+
+@keyframes hide {
+  0% {
     clip-path: inset(0 0 0 0);
   }
   100% {

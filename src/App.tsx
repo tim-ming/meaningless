@@ -7,7 +7,6 @@ const App = () => {
   return (
     <>
       <Transitioner />
-      <Background />
       <Wrapper extraClassName="pointer-events-none">
         <Content />
         <Footer />

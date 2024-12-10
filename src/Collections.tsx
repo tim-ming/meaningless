@@ -44,7 +44,7 @@ const Collections = () => {
                 <div className="mb-4">
                   <img
                     src={item.image}
-                    alt="Twisted Dragon"
+                    alt={item.title}
                     className="w-full object-cover p-6"
                   />
                 </div>

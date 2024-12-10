@@ -1,11 +1,10 @@
 import {
   Center,
   MeshTransmissionMaterial,
-  OrbitControls,
-  PerformanceMonitor,
+  Preload,
   Text3D,
 } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { easing } from "maath";
 import { useInView } from "motion/react";
 import React, { useEffect, useRef, useState } from "react";
@@ -13,23 +12,57 @@ import { useLocation } from "react-router";
 import { TRANSITION } from "./helpers/constants";
 import { useTransitionStore } from "./stores";
 
+const Overlay: React.FC = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [dpr, setDpr] = useState(1);
+  const { transitioning } = useTransitionStore();
+  const inView = useInView(ref);
+
+  useEffect(() => {
+    if (transitioning) {
+      ref.current!.classList.remove("top-[100%]");
+      ref.current!.classList.add("clip");
+    } else {
+      ref.current!.classList.remove("clip");
+      ref.current!.classList.add("top-[100%]");
+    }
+  }, [transitioning]);
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className="fixed w-full h-full top-0 left-0 z-[99999] loading"
+      >
+        <Canvas
+          gl={{ antialias: false }}
+          frameloop={inView ? "always" : "never"}
+          // frameloop={"always"}
+          dpr={dpr}
+          camera={{ fov: 90 }}
+        >
+          <Scene />
+          <Preload all />
+        </Canvas>
+      </div>
+    </>
+  );
+};
+
 const Scene = () => {
   const { transitioning } = useTransitionStore();
-  const state = useThree();
+
   useFrame((state, delta) => {
     if (transitioning) {
       easing.damp3(
         state.camera.position,
-        [0, 2, 3],
+        [0, 2, 5],
         TRANSITION.DURATION_S / 1.5,
         delta,
         Infinity
-
-        // easing.quart.inOut
-      ); // Move camera
-      console.log(state.camera.position);
+      );
     } else {
-      state.camera.position.set(0, -2, 3);
+      state.camera.position.set(0, -2, 5);
     }
   });
 
@@ -38,13 +71,12 @@ const Scene = () => {
       <ambientLight intensity={0.5} />
       <Sphere />
 
-      {/* <Ground /> */}
-      <OrbitControls />
       <Title />
       <color attach="background" args={["#000"]} />
     </>
   );
 };
+
 const Sphere = () => {
   return (
     <mesh position={[0, 0, 0]}>
@@ -65,52 +97,22 @@ const Sphere = () => {
   );
 };
 
-const Loading: React.FC = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dpr, setDpr] = useState(1);
-  const { transitioning } = useTransitionStore();
-  const inView = useInView(ref);
-  useEffect(() => {
-    if (transitioning) {
-      ref.current!.classList.remove("hidden");
-      ref.current!.classList.add("clip");
-    } else {
-      ref.current!.classList.remove("clip");
-      ref.current!.classList.add("hidden");
-    }
-  }, [transitioning]);
-
-  return (
-    <>
-      <div ref={ref} className="fixed w-full h-full top-0 left-0 z-[99999]">
-        <Canvas
-          gl={{ antialias: false }}
-          // frameloop={inView ? "always" : "never"}
-          frameloop={"always"}
-          dpr={1.5}
-          camera={{ position: [0, -2, 3], fov: 90 }}
-        >
-          <Scene />
-        </Canvas>
-      </div>
-    </>
-  );
-};
-
 const Title = () => {
   const location = useLocation();
   const [text, setText] = useState("Collections");
+
   useEffect(() => {
     if (location.pathname === "/") {
-      setText("Home");
+      setText("home");
     } else if (location.pathname === "/about") {
-      setText("About");
+      setText("about");
     } else if (location.pathname === "/collections") {
-      setText("Collections");
+      setText("collections");
     } else {
       setText("Unknown");
     }
   }, [location.pathname]);
+
   return (
     <Center cacheKey={text} position={[0, 0, -8]}>
       <Text3D
@@ -134,4 +136,4 @@ const Title = () => {
   );
 };
 
-export default Loading;
+export default Overlay;

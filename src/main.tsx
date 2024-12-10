@@ -1,30 +1,27 @@
-import { StrictMode, useEffect } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  HashRouter,
-  useLocation,
-} from "react-router";
-import App from "./App.tsx";
-import Collections from "./Collections.tsx";
-import Layout from "./Layout.tsx";
-import About from "./About.tsx";
 import { AnimatePresence } from "motion/react";
+import { StrictMode, Suspense, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import About from "./About.tsx";
+import App from "./App.tsx";
+import Background from "./Background.tsx";
+import Collections from "./Collections.tsx";
 import Nav from "./components/Nav.tsx";
-import { motion } from "motion/react";
-import Loading from "./Loading.tsx";
 import { TRANSITION } from "./helpers/constants.ts";
+import "./index.css";
+import Overlay from "./Overlay.tsx";
+import SuspenseOverlay from "./SuspenseOverlay.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <InitialiseCSSVariable />
-      <AnimatedRoutes />
-      <Nav />
-      <TransitionOverlay />
+      <Suspense fallback={<SuspenseOverlay />}>
+        <Overlay />
+        <Background />
+        <InitialiseCSSVariable />
+        <AnimatedRoutes />
+        <Nav />
+      </Suspense>
     </BrowserRouter>
   </StrictMode>
 );
@@ -37,7 +34,7 @@ function AnimatedRoutes() {
         <Route index element={<App />} />
         <Route path="collections" element={<Collections />} />
         <Route path="about" element={<About />} />
-        <Route path="loading" element={<Loading />} />
+        <Route path="loading" element={<Overlay />} />
       </Routes>
     </AnimatePresence>
   );
@@ -51,8 +48,4 @@ function InitialiseCSSVariable() {
     );
   }, []);
   return <></>;
-}
-
-function TransitionOverlay() {
-  return <Loading />;
 }

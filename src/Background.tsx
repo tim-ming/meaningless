@@ -3,8 +3,10 @@ import {
   MeshReflectorMaterial,
   MeshTransmissionMaterial,
   PerformanceMonitor,
+  Preload,
   ScrollControls,
   useCursor,
+  useProgress,
   useScroll,
 } from "@react-three/drei";
 import {
@@ -24,7 +26,8 @@ import data from "./assets/collections.json";
 import { useNavigate } from "react-router";
 
 export default function Background({}) {
-  const [dpr, setDpr] = useState(1.5);
+  const [dpr, setDpr] = useState(1);
+  const [loadingComplete, setLoadingComplete] = useState(false);
   return (
     <div className="absolute w-screen h-screen top-0 left-0">
       <Canvas
@@ -34,14 +37,16 @@ export default function Background({}) {
         frameloop="demand"
         // frameloop="never"
         dpr={dpr}
+        onCreated={() => setLoadingComplete(true)} // Set loading complete when canvas is ready
       >
         <PerformanceMonitor
-          onIncline={() => setDpr(2)}
+          onIncline={() => setDpr(1.5)}
           onDecline={() => setDpr(1)}
           flipflops={3}
         >
           <Scene />
         </PerformanceMonitor>
+        <Preload all />
         {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
       </Canvas>
     </div>
