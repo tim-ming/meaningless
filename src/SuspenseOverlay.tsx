@@ -40,13 +40,14 @@ const Overlay: React.FC = () => {
     }
   }, [doneLoading]);
 
+  const percentage = Math.floor((loaded / total) * 100);
   return (
     <>
       <div
         ref={ref}
-        className="fixed w-full h-full top-0 left-0 z-[99999] loading"
+        className="fixed w-full h-full top-0 left-0 z-[99999] bg-black"
       >
-        <Canvas
+        {/* <Canvas
           gl={{ antialias: false }}
           frameloop={inView ? "always" : "never"}
           // frameloop={"always"}
@@ -55,7 +56,12 @@ const Overlay: React.FC = () => {
         >
           <Scene doneLoading={doneLoading} />
           <Preload all />
-        </Canvas>
+        </Canvas> */}
+        <div className="flex w-full h-full justify-center items-center">
+          <p className="text-[20vw] tracking-[-1.5vw] font-semibold text-neutral-300">
+            {percentage ? percentage : "0"}
+          </p>
+        </div>
       </div>
     </>
   );
@@ -106,7 +112,7 @@ const Percentage = () => {
         bevelThickness={0.1}
         height={0}
       >
-        {percentage}
+        {percentage ? percentage : "0"}
         <meshStandardMaterial
           color="white"
           roughness={0.1}

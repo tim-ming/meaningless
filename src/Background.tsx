@@ -17,36 +17,37 @@ import {
   useFrame,
 } from "@react-three/fiber";
 import { easing } from "maath";
-import { useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
 import { lerp } from "three/src/math/MathUtils.js";
 import data from "./assets/collections.json";
 import { useNavigate } from "react-router";
+import { TRANSITION } from "./helpers/constants";
 
 export default function Background({}) {
   const [dpr, setDpr] = useState(1);
-  const [loadingComplete, setLoadingComplete] = useState(false);
   return (
     <div className="absolute w-screen h-screen top-0 left-0">
       <Canvas
-        camera={{ position: [0, 0, 100], fov: 15 }}
+        camera={{ position: [0, 0, 5], fov: 60 }}
         eventPrefix="client"
         shadows
-        frameloop="demand"
+        frameloop="always"
         // frameloop="never"
         dpr={dpr}
-        onCreated={() => setLoadingComplete(true)} // Set loading complete when canvas is ready
       >
-        <PerformanceMonitor
-          onIncline={() => setDpr(1.5)}
-          onDecline={() => setDpr(1)}
-          flipflops={3}
-        >
-          <Scene />
-        </PerformanceMonitor>
-        <Preload all />
+        <Suspense fallback={null}>
+          <PerformanceMonitor
+            onIncline={() => setDpr(1.5)}
+            onDecline={() => setDpr(1)}
+            flipflops={3}
+          >
+            <Scene />
+          </PerformanceMonitor>
+          <Preload all />
+        </Suspense>
         {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
       </Canvas>
     </div>
@@ -83,14 +84,27 @@ function Rig(props: GroupProps) {
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
   const scroll = useScroll();
+  const [isDelayed, setIsDelayed] = useState(false); // State to trigger useFrame logic
+
+  useEffect(() => {
+    // Delay the useFrame execution by 1 second
+    const timeout = setTimeout(() => {
+      setIsDelayed(true);
+    }, TRANSITION.DURATION_S / 2);
+
+    return () => clearTimeout(timeout); // Cleanup timeout on unmount
+  }, []);
+
   useFrame((state, delta) => {
+    if (!isDelayed) return; // Skip frame updates until the delay is over
+
     easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
     ref.current!.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
     state.events.update!(); // Raycasts every frame rather than on pointer-move
 
     easing.damp3(
       state.camera.position,
-      [-state.pointer.x * 5, state.pointer.y * 2 + 3, state.pointer.y / 2 + 30],
+      [-state.pointer.x * 2, state.pointer.y * 1 + 1, state.pointer.y / 2 + 9],
       0.3,
       delta
     ); // Move camera

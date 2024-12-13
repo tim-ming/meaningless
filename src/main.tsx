@@ -11,17 +11,18 @@ import { TRANSITION } from "./helpers/constants.ts";
 import "./index.css";
 import Overlay from "./Overlay.tsx";
 import SuspenseOverlay from "./SuspenseOverlay.tsx";
+import { Loader } from "@react-three/drei";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      {/* <Suspense fallback={<SuspenseOverlay />}> */}
+      <SuspenseOverlay />
+
       <Overlay />
       <Background />
       <InitialiseCSSVariable />
       <AnimatedRoutes />
       <Nav />
-      {/* </Suspense> */}
     </BrowserRouter>
   </StrictMode>
 );
