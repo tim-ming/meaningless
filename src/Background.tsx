@@ -23,13 +23,13 @@ import { RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
 import { lerp } from "three/src/math/MathUtils.js";
 import data from "./assets/collections.json";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { TRANSITION } from "./helpers/constants";
 
 export default function Background({}) {
   const [dpr, setDpr] = useState(1);
   return (
-    <div className="absolute w-screen h-screen top-0 left-0">
+    <div className="fixed w-screen h-screen top-0 left-0">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 60 }}
         eventPrefix="client"
@@ -57,6 +57,7 @@ export default function Background({}) {
 const Scene = () => {
   const radius = 2;
   const circleRadius = radius / 2;
+  const location = useLocation();
   return (
     <group rotation={[0, 0, 0.2]}>
       {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
@@ -68,11 +69,19 @@ const Scene = () => {
         decay={0}
         castShadow
       />
-      <ScrollControls pages={3} infinite maxSpeed={2} distance={0.5}>
-        <Rig>
-          <Carousel radius={radius} />
-        </Rig>
-      </ScrollControls>
+      {location.pathname == "/" && (
+        <ScrollControls
+          enabled={location.pathname == "/" ? true : false}
+          pages={3}
+          infinite
+          maxSpeed={2}
+          distance={0.5}
+        >
+          <Rig>
+            <Carousel radius={radius} />
+          </Rig>
+        </ScrollControls>
+      )}
 
       <Sphere radius={circleRadius} />
       <Ground yPos={-circleRadius} />
@@ -85,6 +94,7 @@ function Rig(props: GroupProps) {
   const ref = useRef<Group>(null);
   const scroll = useScroll();
   const [isDelayed, setIsDelayed] = useState(false); // State to trigger useFrame logic
+  const location = useLocation();
 
   useEffect(() => {
     // Delay the useFrame execution by 1 second
@@ -178,7 +188,12 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
       {...props}
       onClick={() => navigate(`/collections#${imageId}`)}
     >
-      <Image url={imageUrl} transparent side={THREE.DoubleSide} castShadow>
+      <Image
+        url={imageUrl + ".webp"}
+        transparent
+        side={THREE.DoubleSide}
+        castShadow
+      >
         <planeGeometry args={[1, 1]} />
       </Image>
       <mesh position={[0, 0, 0.01]} castShadow geometry={backPlateGeometry}>

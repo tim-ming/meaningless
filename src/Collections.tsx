@@ -17,7 +17,7 @@ const Collections = () => {
         <span className="fixed border-t-[1px] w-screen"></span>
         <div className="grid grid-cols-2 relative justify-center border-x-[1px]">
           {/* Sidebar */}
-          <aside className="px-[var(--padding)] max-w-[720px] relative pt-6 border-r border-gray-300">
+          <aside className="px-[var(--padding)] max-w-[640px] relative pt-6 border-r border-gray-300">
             <div className="fixed flex flex-col gap-20">
               <h1 className="text-5xl leading-[1.05] tracking-[-0.05em] font-semibold">
                 Collections
@@ -38,12 +38,12 @@ const Collections = () => {
           </aside>
 
           {/* Main Content */}
-          <main className=" max-w-[720px]">
+          <main className=" max-w-[640px]">
             {data.map((item, _) => (
               <section className="flex flex-col" id={item.id} key={item.id}>
                 <div className="mb-4">
                   <img
-                    src={item.image}
+                    src={item.image + ".webp"}
                     alt={item.title}
                     className="w-full object-cover p-6"
                   />
