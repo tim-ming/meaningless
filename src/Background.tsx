@@ -71,6 +71,7 @@ const Scene = () => {
       />
       {location.pathname == "/" && (
         <ScrollControls
+          horizontal
           enabled={location.pathname == "/" ? true : false}
           pages={3}
           infinite
@@ -90,6 +91,7 @@ const Scene = () => {
 };
 
 function Rig(props: GroupProps) {
+  const [enabled, setEnabled] = useState(false);
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
   const scroll = useScroll();
