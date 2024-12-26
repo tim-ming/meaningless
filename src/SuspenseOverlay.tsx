@@ -11,7 +11,6 @@ const Overlay: React.FC = () => {
   ); // Check if loading is finished
 
   useEffect(() => {
-    console.log("doneLoading", doneLoading);
     const handleAnimationEnd = () => {
       ref.current!.classList.add("top-[100%]");
       ref.current!.classList.remove("load-in");

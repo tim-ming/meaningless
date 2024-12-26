@@ -20,9 +20,6 @@ const Nav: React.FC<NavProps> = ({ position = "fixed" }) => {
         <Link to="/about" className="text-sm font-medium hover:underline">
           About
         </Link>
-        <Link to="/collections" className="text-sm font-medium hover:underline">
-          Collections
-        </Link>
       </span>
     </nav>
   );

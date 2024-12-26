@@ -55,11 +55,75 @@ export default function Background({}) {
 }
 
 const Scene = () => {
+  const [rigEnabled, setRigEnabled] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(false);
+  const cameraTarget = useRef<{
+    pos: THREE.Vector3;
+    rot: THREE.Euler;
+  }>({
+    pos: new THREE.Vector3(0, 0, 5),
+    rot: new THREE.Euler(0, 0, 0),
+  });
+  const ref = useRef<Group>(null);
   const radius = 2;
   const circleRadius = radius / 2;
   const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === "") {
+      setRigEnabled(true);
+      setScrollEnabled(true);
+      cameraTarget.current.pos.set(0, 0, 5);
+      cameraTarget.current.rot.set(0, 0, 0);
+    } else {
+      setRigEnabled(false);
+      setScrollEnabled(false);
+    }
+
+    const segments = location.pathname.split("/"); // ASSUMPTION: /collections/:id
+
+    if (segments.length > 2) {
+      const id = segments[2];
+      const obj = ref.current?.getObjectByName(id)!;
+      const q = obj.getWorldQuaternion(new THREE.Quaternion());
+      const p = obj.getWorldPosition(new THREE.Vector3());
+      console.log(id, q, p);
+
+      // Calculate the direction vector from the object to the camera
+      const direction = new THREE.Vector3(0, 0, 1)
+        .applyQuaternion(q)
+        .normalize();
+      const distance = -2; // Adjust this value to set the desired distance
+
+      // Set the camera position to the object's position plus the scaled direction vector
+      cameraTarget.current.pos.copy(p).add(direction.multiplyScalar(distance));
+      cameraTarget.current.rot.setFromQuaternion(q);
+    }
+  }, [location]);
+
+  useFrame((state, delta) => {
+    if (location.pathname !== "/") {
+      easing.damp3(
+        state.camera.position,
+        [...cameraTarget.current.pos.toArray()],
+        0.3,
+        delta
+      ); // Move camera
+      easing.dampE(
+        state.camera.rotation,
+        [...cameraTarget.current.rot.toArray()],
+        0.3,
+        delta
+      );
+    }
+    // console.log(
+    //   "ID 01",
+    //   ref.current?.getObjectByName("01")?.getWorldPosition(new THREE.Vector3())
+    // );
+  });
+
   return (
-    <group rotation={[0, 0, 0.2]}>
+    <group rotation={[0, 0, 0.2]} ref={ref}>
       {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
       <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
       <spotLight
@@ -69,34 +133,33 @@ const Scene = () => {
         decay={0}
         castShadow
       />
-      {location.pathname == "/" && (
-        <ScrollControls
-          horizontal
-          enabled={location.pathname == "/" ? true : false}
-          pages={3}
-          infinite
-          maxSpeed={2}
-          distance={0.5}
-        >
-          <Rig>
-            <Carousel radius={radius} />
-          </Rig>
-        </ScrollControls>
-      )}
+      <ScrollControls
+        horizontal
+        enabled={scrollEnabled}
+        pages={3}
+        infinite
+        maxSpeed={2}
+        distance={0.5}
+      >
+        <Rig enabled={rigEnabled}>
+          <Carousel radius={radius} />
+        </Rig>
+      </ScrollControls>
 
       <Sphere radius={circleRadius} />
       <Ground yPos={-circleRadius} />
     </group>
   );
 };
+interface RigProps extends GroupProps {
+  enabled: boolean;
+}
 
-function Rig(props: GroupProps) {
-  const [enabled, setEnabled] = useState(false);
+function Rig({ enabled, ...props }: RigProps) {
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
   const scroll = useScroll();
   const [isDelayed, setIsDelayed] = useState(false); // State to trigger useFrame logic
-  const location = useLocation();
 
   useEffect(() => {
     // Delay the useFrame execution by 1 second
@@ -108,7 +171,8 @@ function Rig(props: GroupProps) {
   }, []);
 
   useFrame((state, delta) => {
-    if (!isDelayed) return; // Skip frame updates until the delay is over
+    if (!enabled) return;
+    if (!isDelayed) return;
 
     easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
     ref.current!.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
@@ -151,6 +215,7 @@ interface CardProps extends GroupProps {
   imageUrl: string;
   imageId: string;
 }
+
 function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
   const backPlateSize = cardSize * 1.1;
   const backPlateGeometry = RoundedRectangle(
@@ -167,7 +232,10 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
     e.stopPropagation(), hover(true)
   );
   const pointerOut = () => hover(false);
-
+  const click = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    navigate(`/collections/${imageId}`);
+  };
   useCursor(hovered);
   useFrame((_, delta) => {
     ref.current!.children.forEach((child) => {
@@ -188,13 +256,14 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
       onPointerOut={pointerOut}
       ref={ref}
       {...props}
-      onClick={() => navigate(`/collections#${imageId}`)}
+      onClick={click}
     >
       <Image
         url={imageUrl + ".webp"}
         transparent
         side={THREE.DoubleSide}
         castShadow
+        name={imageId}
       >
         <planeGeometry args={[1, 1]} />
       </Image>
