@@ -19,12 +19,39 @@ import {
 import { easing } from "maath";
 import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { RoundedRectangle } from "./helpers/utils";
+import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
 import { lerp } from "three/src/math/MathUtils.js";
 import data from "./assets/collections.json";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { TRANSITION } from "./helpers/constants";
+import { proxy, useSnapshot } from "valtio";
+
+const THRESHOLD = 0.001;
+
+interface Store {
+  sceneRotation: THREE.Euler;
+
+  carouselRotation: number;
+  prevRoute: string;
+  cameraTarget: {
+    pos: THREE.Vector3;
+    rot: THREE.Euler;
+  };
+  ids: string[];
+}
+const initialState: Store = {
+  sceneRotation: new THREE.Euler(0, 0, 0),
+  carouselRotation: 0,
+  prevRoute: "",
+  cameraTarget: {
+    pos: new THREE.Vector3(0, 0, 5),
+    rot: new THREE.Euler(0, 0, 0),
+  },
+  ids: data.map((item) => item.id),
+};
+
+const store: Store = proxy<Store>({ ...initialState });
 
 export default function Background({}) {
   const [dpr, setDpr] = useState(1);
@@ -54,102 +81,176 @@ export default function Background({}) {
   );
 }
 
+/**
+ * Calculate the camera target position and rotation to face the object
+ * @param obj Object to face the camera
+ * @param distance Distance from the object
+ * @returns Camera target position and rotation
+ */
+function calculateCameraTarget(
+  obj: THREE.Object3D,
+  distance = 1.8
+): {
+  pos: THREE.Vector3;
+  rot: THREE.Euler;
+} {
+  // Get the object's world quaternion and position
+  const q = obj.getWorldQuaternion(new THREE.Quaternion());
+  const p = obj.getWorldPosition(new THREE.Vector3());
+
+  // Calculate the direction vector from the target position to the object
+  const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(q).normalize();
+
+  // Calculate the target position
+  const targetPos = p.clone().sub(direction.multiplyScalar(distance));
+
+  // Compute the quaternion for the camera to face p
+  const lookDirection = p.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to p
+  const cameraQuaternion = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 0, -1),
+    lookDirection
+  );
+
+  // Adjust the camera's rotation
+  const cameraRotation = new THREE.Euler().setFromQuaternion(cameraQuaternion);
+
+  return {
+    pos: new THREE.Vector3(0, 0.2, 0).add(targetPos),
+    rot: cameraRotation,
+  };
+}
+
 const Scene = () => {
   const [rigEnabled, setRigEnabled] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(false);
-  const cameraTarget = useRef<{
-    pos: THREE.Vector3;
-    rot: THREE.Euler;
-  }>({
-    pos: new THREE.Vector3(0, 0, 5),
-    rot: new THREE.Euler(0, 0, 0),
-  });
   const ref = useRef<Group>(null);
   const radius = 2;
   const circleRadius = radius / 2;
   const location = useLocation();
 
   useEffect(() => {
-    if (location.pathname === "") {
+    if (location.pathname === "/") {
+      store.cameraTarget.pos.set(0, 0, 5);
+      store.cameraTarget.rot.set(0, 0, 0);
+
+      store.sceneRotation = initialState.sceneRotation;
+
       setRigEnabled(true);
       setScrollEnabled(true);
-      cameraTarget.current.pos.set(0, 0, 5);
-      cameraTarget.current.rot.set(0, 0, 0);
-    } else {
+    } else if (/\/collections\/\d+/.test(location.pathname)) {
+      store.sceneRotation = initialState.sceneRotation;
+
       setRigEnabled(false);
       setScrollEnabled(false);
+
+      const id = location.pathname.split("/")[2];
+      const obj = ref.current?.getObjectByName(id);
+
+      if (obj) {
+        const prevRouteId = store.prevRoute.split("/")[2];
+        if (!prevRouteId) {
+          const { pos, rot } = calculateCameraTarget(obj, 1.5);
+
+          store.cameraTarget.pos.copy(pos);
+          store.cameraTarget.rot.copy(rot);
+        } else {
+          const prevRouteObj = ref.current?.getObjectByName(prevRouteId);
+          if (prevRouteObj) {
+            const units = getShortestDistance(
+              prevRouteObj.userData.index,
+              obj.userData.index,
+              store.ids.length
+            );
+
+            const rotation =
+              store.sceneRotation.y -
+              units * ((Math.PI * 2) / store.ids.length);
+
+            store.sceneRotation.set(
+              store.sceneRotation.x,
+              rotation,
+              store.sceneRotation.z
+            );
+          }
+        }
+      }
+    } else if (location.pathname === "/about") {
+      setRigEnabled(false);
+      setScrollEnabled(false);
+
+      store.cameraTarget.pos.set(0, 0, 5);
+      store.cameraTarget.rot.set(0, 0, 0);
     }
-
-    const segments = location.pathname.split("/"); // ASSUMPTION: /collections/:id
-
-    if (segments.length > 2) {
-      const id = segments[2];
-      const obj = ref.current?.getObjectByName(id)!;
-      const q = obj.getWorldQuaternion(new THREE.Quaternion());
-      const p = obj.getWorldPosition(new THREE.Vector3());
-      console.log(id, q, p);
-
-      // Calculate the direction vector from the object to the camera
-      const direction = new THREE.Vector3(0, 0, 1)
-        .applyQuaternion(q)
-        .normalize();
-      const distance = -2; // Adjust this value to set the desired distance
-
-      // Set the camera position to the object's position plus the scaled direction vector
-      cameraTarget.current.pos.copy(p).add(direction.multiplyScalar(distance));
-      cameraTarget.current.rot.setFromQuaternion(q);
-    }
+    store.prevRoute = location.pathname;
   }, [location]);
 
-  useFrame((state, delta) => {
-    if (location.pathname !== "/") {
-      easing.damp3(
-        state.camera.position,
-        [...cameraTarget.current.pos.toArray()],
-        0.3,
-        delta
-      ); // Move camera
-      easing.dampE(
-        state.camera.rotation,
-        [...cameraTarget.current.rot.toArray()],
-        0.3,
-        delta
-      );
-    }
-    // console.log(
-    //   "ID 01",
-    //   ref.current?.getObjectByName("01")?.getWorldPosition(new THREE.Vector3())
-    // );
-  });
-
   return (
-    <group rotation={[0, 0, 0.2]} ref={ref}>
-      {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
-      <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
-      <spotLight
-        angle={0.8}
-        position={[0, 5, 0]}
-        intensity={0.5}
-        decay={0}
-        castShadow
-      />
-      <ScrollControls
-        horizontal
-        enabled={scrollEnabled}
-        pages={3}
-        infinite
-        maxSpeed={2}
-        distance={0.5}
-      >
-        <Rig enabled={rigEnabled}>
-          <Carousel radius={radius} />
-        </Rig>
-      </ScrollControls>
+    <>
+      <CameraController />
+      <group ref={ref}>
+        {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
+        <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
+        <spotLight
+          angle={0.8}
+          position={[0, 5, 0]}
+          intensity={0.5}
+          decay={0}
+          castShadow
+        />
+        <ScrollControls
+          horizontal
+          enabled={scrollEnabled}
+          pages={3}
+          infinite
+          maxSpeed={2}
+          distance={0.5}
+        >
+          <Rig enabled={rigEnabled}>
+            <Carousel radius={radius} />
+          </Rig>
+        </ScrollControls>
 
-      <Sphere radius={circleRadius} />
-      <Ground yPos={-circleRadius} />
-    </group>
+        <Sphere radius={circleRadius} />
+        <Ground yPos={-circleRadius} />
+      </group>
+    </>
   );
+};
+
+const CameraController = () => {
+  useFrame((state, delta) => {
+    if (location.pathname === "/") return;
+
+    const currentPos = state.camera.position;
+    const targetPos = store.cameraTarget.pos;
+    const currentRot = state.camera.rotation;
+    const targetRot = store.cameraTarget.rot;
+
+    // Check if position and rotation differences are below the threshold
+    const posDone = currentPos.distanceTo(targetPos) < THRESHOLD;
+    const rotDone =
+      new THREE.Quaternion()
+        .setFromEuler(currentRot)
+        .angleTo(new THREE.Quaternion().setFromEuler(targetRot)) < THRESHOLD;
+
+    if (posDone && rotDone) {
+      return;
+    }
+
+    easing.damp3(
+      state.camera.position,
+      [...store.cameraTarget.pos.toArray()],
+      0.3,
+      delta
+    );
+    easing.dampE(
+      state.camera.rotation,
+      [...store.cameraTarget.rot.toArray()],
+      0.3,
+      delta
+    );
+  });
+  return <></>;
 };
 interface RigProps extends GroupProps {
   enabled: boolean;
@@ -159,7 +260,7 @@ function Rig({ enabled, ...props }: RigProps) {
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
   const scroll = useScroll();
-  const [isDelayed, setIsDelayed] = useState(false); // State to trigger useFrame logic
+  const [isDelayed, setIsDelayed] = useState(false); // Store to trigger useFrame logic
 
   useEffect(() => {
     // Delay the useFrame execution by 1 second
@@ -184,6 +285,7 @@ function Rig({ enabled, ...props }: RigProps) {
       0.3,
       delta
     ); // Move camera
+
     state.camera.lookAt(0, 0, 0); // Look at center
   });
 
@@ -195,28 +297,44 @@ function Rig({ enabled, ...props }: RigProps) {
 }
 
 function Carousel({ radius = 2 }) {
-  return data.map((item, i) => (
-    <Card
-      key={item.id}
-      imageUrl={item.image}
-      imageId={item.id}
-      position={[
-        Math.sin((i / data.length) * Math.PI * 2) * radius,
-        0,
-        Math.cos((i / data.length) * Math.PI * 2) * radius,
-      ]}
-      rotation={[0, Math.PI + (i / data.length) * Math.PI * 2, 0]}
-    />
-  ));
+  const ref = useRef<Group>(null);
+  useFrame((_, delta) => {
+    easing.dampE(ref.current!.rotation, store.sceneRotation, 0.1, delta);
+  });
+  return (
+    <group ref={ref}>
+      {data.sort().map((item, i) => (
+        <Card
+          index={i}
+          key={item.id}
+          imageUrl={item.image}
+          imageId={item.id}
+          position={[
+            Math.sin((i / data.length) * Math.PI * 2) * radius,
+            0,
+            Math.cos((i / data.length) * Math.PI * 2) * radius,
+          ]}
+          rotation={[0, Math.PI + (i / data.length) * Math.PI * 2, 0]}
+        />
+      ))}
+    </group>
+  );
 }
 
 interface CardProps extends GroupProps {
   cardSize?: number;
   imageUrl: string;
   imageId: string;
+  index: number;
 }
 
-function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
+function Card({
+  index,
+  cardSize = 1,
+  imageUrl = "",
+  imageId,
+  ...props
+}: CardProps) {
   const backPlateSize = cardSize * 1.1;
   const backPlateGeometry = RoundedRectangle(
     backPlateSize,
@@ -236,17 +354,32 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
     e.stopPropagation();
     navigate(`/collections/${imageId}`);
   };
+
   useCursor(hovered);
   useFrame((_, delta) => {
+    const id = location.pathname.split("/")[2];
+    const isObj = id ? imageId == id : false;
     ref.current!.children.forEach((child) => {
       const mesh = child as THREE.Mesh;
 
       // Adjust scale when hovered
-      easing.damp3(mesh.scale, hovered ? 1.15 : 1, 0.1, delta);
+      easing.damp3(mesh.scale, hovered || isObj ? 1.2 : 1, 0.2, delta);
 
       // Adjust material properties
-      easing.damp(mesh.material, "radius", hovered ? 0.25 : 0.1, 0.2, delta);
-      easing.damp(mesh.material, "zoom", hovered ? 1 : 1.5, 0.2, delta);
+      easing.damp(
+        mesh.material,
+        "radius",
+        hovered || isObj ? 0.05 : 0.1,
+        0.2,
+        delta
+      );
+      easing.damp(
+        mesh.material,
+        "zoom",
+        hovered || isObj ? 1 : 1.5,
+        0.2,
+        delta
+      );
     });
   });
 
@@ -257,17 +390,24 @@ function Card({ cardSize = 1, imageUrl = "", imageId, ...props }: CardProps) {
       ref={ref}
       {...props}
       onClick={click}
+      userData={{ index }}
+      name={imageId}
     >
       <Image
-        url={imageUrl + ".webp"}
+        url={"/" + imageUrl + ".webp"}
         transparent
         side={THREE.DoubleSide}
         castShadow
-        name={imageId}
       >
         <planeGeometry args={[1, 1]} />
       </Image>
-      <mesh position={[0, 0, 0.01]} castShadow geometry={backPlateGeometry}>
+      <mesh
+        onClick={(e) => e.stopPropagation()}
+        onPointerOver={(e) => e.stopPropagation()}
+        position={[0, 0, 0.01]}
+        castShadow
+        geometry={backPlateGeometry}
+      >
         <meshBasicMaterial color="white" side={THREE.FrontSide} />
       </mesh>
     </group>

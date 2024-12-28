@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import Background from "./Background";
 import Wrapper from "./components/Wrapper";
+import MagneticWrapper from "./components/Magnetic";
 
 const App = () => {
   return (
@@ -23,12 +24,14 @@ const Content = () => {
           Within every picture holds no story.
         </h1>
         <span>
-          <button
-            onClick={() => navigate("/collections")}
-            className="w-[160px] h-[50px] border-neutral-900 border-[1px] rounded-lg"
-          >
-            Take a look →
-          </button>
+          <MagneticWrapper>
+            <button
+              onClick={() => navigate("/collections/01")}
+              className="w-[160px] h-[50px] border-neutral-900 border-[1px] rounded-lg hover:bg-neutral-800 hover:mix-blend-difference hover:text-neutral-200 transition-[background-color] text-neutral-600"
+            >
+              Take a look →
+            </button>
+          </MagneticWrapper>
         </span>
       </div>
     </main>

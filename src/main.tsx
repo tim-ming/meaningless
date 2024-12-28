@@ -10,8 +10,8 @@ import { TRANSITION } from "./helpers/constants.ts";
 import "./index.css";
 import SuspenseOverlay from "./SuspenseOverlay.tsx";
 import { Loader } from "@react-three/drei";
-import Collections from "./Collections.tsx";
 import Collection from "./Collection.tsx";
+import CollectionLayout from "./CollectionLayout.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -33,8 +33,10 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route index element={<App />} />
         <Route path="about" element={<About />} />
-        <Route path="collections" element={<Collections />} />
-        <Route path="collections/:id" element={<Collection />} />
+
+        <Route path="collections" element={<CollectionLayout />}>
+          <Route path=":id" element={<Collection />} />
+        </Route>
       </Routes>
     </AnimatePresence>
   );

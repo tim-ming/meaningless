@@ -25,6 +25,7 @@
 
 body {
   max-width: 1280px;
+  overscroll-behavior: none;
 }
 
 @media (min-width: 640px) {

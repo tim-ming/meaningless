@@ -100,3 +100,25 @@ export function RoundedRectangle(
 
   return geometry;
 }
+
+/**
+ * Returns the shortest distance between two numbers in a circular range.
+ * @param a first number
+ * @param b second number
+ * @param range range of the numbers
+ * @returns the shortest distance between a and b in a circular range
+ */
+export function getShortestDistance(
+  a: number,
+  b: number,
+  range: number
+): number {
+  const directDistance = b - a;
+  const circularDistance = range - Math.abs(directDistance);
+  const circularDistanceWithPolarity =
+    directDistance > 0 ? -circularDistance : circularDistance;
+
+  return Math.abs(directDistance) < Math.abs(circularDistanceWithPolarity)
+    ? directDistance
+    : circularDistanceWithPolarity;
+}
