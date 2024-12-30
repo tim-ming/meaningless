@@ -30,7 +30,6 @@ const CollectionLayout = () => {
     const to = index === 0 ? d[d.length - 1] : d[index - 1];
     navigate(`${to}`);
   }
-  console.log("CollectionLayout render:", { id, location });
   return (
     <main className="flex flex-col w-screen absolute top-0 min-h-screen p-8 z-[999999] pointer-events-none">
       <div className="flex items-center pt-8 w-full justify-center">

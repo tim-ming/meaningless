@@ -37,6 +37,7 @@ interface Store {
   cameraTarget: {
     pos: THREE.Vector3;
     rot: THREE.Euler;
+    fov: number;
   };
   ids: string[];
 }
@@ -47,6 +48,7 @@ const initialState: Store = {
   cameraTarget: {
     pos: new THREE.Vector3(0, 0, 5),
     rot: new THREE.Euler(0, 0, 0),
+    fov: 60,
   },
   ids: data.map((item) => item.id),
 };
@@ -58,7 +60,7 @@ export default function Background({}) {
   return (
     <div className="fixed w-screen h-screen top-0 left-0">
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 60 }}
+        camera={{ position: [0, 0, 5], fov: store.cameraTarget.fov }}
         eventPrefix="client"
         shadows
         frameloop="always"
@@ -89,7 +91,7 @@ export default function Background({}) {
  */
 function calculateCameraTarget(
   obj: THREE.Object3D,
-  distance = 1.8
+  distance = 2
 ): {
   pos: THREE.Vector3;
   rot: THREE.Euler;
@@ -125,7 +127,7 @@ const Scene = () => {
   const [scrollEnabled, setScrollEnabled] = useState(false);
   const ref = useRef<Group>(null);
   const radius = 2;
-  const circleRadius = radius / 2;
+  const circleRadius = radius / 1.8;
   const location = useLocation();
 
   useEffect(() => {
@@ -149,7 +151,7 @@ const Scene = () => {
       if (obj) {
         const prevRouteId = store.prevRoute.split("/")[2];
         if (!prevRouteId) {
-          const { pos, rot } = calculateCameraTarget(obj, 1.5);
+          const { pos, rot } = calculateCameraTarget(obj, 2.5);
 
           store.cameraTarget.pos.copy(pos);
           store.cameraTarget.rot.copy(rot);
@@ -166,6 +168,7 @@ const Scene = () => {
               store.sceneRotation.y -
               units * ((Math.PI * 2) / store.ids.length);
 
+            console.log(rotation);
             store.sceneRotation.set(
               store.sceneRotation.x,
               rotation,
@@ -178,8 +181,8 @@ const Scene = () => {
       setRigEnabled(false);
       setScrollEnabled(false);
 
-      store.cameraTarget.pos.set(0, 0, 5);
-      store.cameraTarget.rot.set(0, 0, 0);
+      store.cameraTarget.pos.set(0, 2, 5);
+      store.cameraTarget.rot.set(-0.2, 0, -Math.PI / 2.2);
     }
     store.prevRoute = location.pathname;
   }, [location]);
@@ -281,12 +284,35 @@ function Rig({ enabled, ...props }: RigProps) {
 
     easing.damp3(
       state.camera.position,
-      [-state.pointer.x * 2, state.pointer.y * 1 + 1, state.pointer.y / 2 + 9],
+      [
+        -state.pointer.x * 1,
+        state.pointer.y * 0.5 + 1,
+        state.pointer.y / 3 + 9,
+      ],
       0.3,
       delta
     ); // Move camera
 
-    state.camera.lookAt(0, 0, 0); // Look at center
+    // Calculate the Euler angles required to look at (0, 0, 0)
+    const target = new THREE.Vector3(0, 0, 0);
+
+    // Compute the direction vector from the camera to the target
+    const cameraDirection = new THREE.Vector3()
+      .subVectors(target, state.camera.position)
+      .normalize();
+
+    // Create a quaternion to represent the rotation towards the target
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 0, -1), // Default camera forward direction
+      cameraDirection
+    );
+
+    // Convert the quaternion to Euler angles
+    const euler = new THREE.Euler().setFromQuaternion(quaternion);
+
+    // Smoothly rotate the camera towards the target using damping
+    easing.dampE(state.camera.rotation, euler, 0.2, delta);
   });
 
   return (
@@ -335,7 +361,7 @@ function Card({
   imageId,
   ...props
 }: CardProps) {
-  const backPlateSize = cardSize * 1.1;
+  const backPlateSize = cardSize * 1.05;
   const backPlateGeometry = RoundedRectangle(
     backPlateSize,
     backPlateSize,
@@ -404,7 +430,7 @@ function Card({
       <mesh
         onClick={(e) => e.stopPropagation()}
         onPointerOver={(e) => e.stopPropagation()}
-        position={[0, 0, 0.01]}
+        position={[0, 0, 0.005]}
         castShadow
         geometry={backPlateGeometry}
       >
