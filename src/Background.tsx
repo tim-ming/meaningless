@@ -6,6 +6,7 @@ import {
   Preload,
   ScrollControls,
   useCursor,
+  usePerformanceMonitor,
   useProgress,
   useScroll,
 } from "@react-three/drei";
@@ -15,6 +16,7 @@ import {
   MeshProps,
   ThreeEvent,
   useFrame,
+  useThree,
 } from "@react-three/fiber";
 import { easing } from "maath";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -26,6 +28,8 @@ import data from "./assets/collections.json";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { TRANSITION } from "./helpers/constants";
 import { proxy, useSnapshot } from "valtio";
+import { backgroundStore } from "./stores";
+import { isMobile } from "react-device-detect";
 
 const THRESHOLD = 0.001;
 
@@ -58,7 +62,7 @@ const store: Store = proxy<Store>({ ...initialState });
 export default function Background({}) {
   const [dpr, setDpr] = useState(1);
   return (
-    <div className="fixed w-screen h-screen top-0 left-0">
+    <div className="fixed w-full h-full top-0 left-0 bg-white">
       <Canvas
         camera={{ position: [0, 0, 5], fov: store.cameraTarget.fov }}
         eventPrefix="client"
@@ -168,7 +172,6 @@ const Scene = () => {
               store.sceneRotation.y -
               units * ((Math.PI * 2) / store.ids.length);
 
-            console.log(rotation);
             store.sceneRotation.set(
               store.sceneRotation.x,
               rotation,
@@ -190,8 +193,9 @@ const Scene = () => {
   return (
     <>
       <CameraController />
+      {/* <color attach="background" args={["#fff"]} /> */}
+      <fog attach="fog" args={["#fff", 4, 20]} />
       <group ref={ref}>
-        {/* <fog attach="fog" args={["#fff", 4, 20]} /> */}
         <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
         <spotLight
           angle={0.8}
@@ -205,15 +209,15 @@ const Scene = () => {
           enabled={scrollEnabled}
           pages={3}
           infinite
-          maxSpeed={2}
-          distance={0.5}
+          distance={1}
+          damping={0.1}
         >
           <Rig enabled={rigEnabled}>
             <Carousel radius={radius} />
           </Rig>
         </ScrollControls>
 
-        <Sphere radius={circleRadius} />
+        {/* <Sphere radius={circleRadius} /> */}
         <Ground yPos={-circleRadius} />
       </group>
     </>
@@ -280,7 +284,6 @@ function Rig({ enabled, ...props }: RigProps) {
 
     easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
     ref.current!.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
-    state.events.update!(); // Raycasts every frame rather than on pointer-move
 
     easing.damp3(
       state.camera.position,
@@ -324,9 +327,43 @@ function Rig({ enabled, ...props }: RigProps) {
 
 function Carousel({ radius = 2 }) {
   const ref = useRef<Group>(null);
+  const { camera } = useThree();
+
   useFrame((_, delta) => {
+    if (location.pathname == "/about") {
+      store.sceneRotation.y += 0.3 * delta;
+    }
     easing.dampE(ref.current!.rotation, store.sceneRotation, 0.1, delta);
   });
+
+  useEffect(() => {
+    const findClosestObjectId = () => {
+      if (!ref.current) return null;
+      const objects = ref.current.children;
+
+      const closest = objects
+        .map((object) => ({
+          object,
+          distance: camera.position.distanceTo(
+            object.getWorldPosition(new THREE.Vector3())
+          ),
+        }))
+        .reduce(
+          (closest, current) =>
+            current.distance < closest.distance ? current : closest,
+          { object: null, distance: Infinity } as {
+            object: THREE.Object3D | null;
+            distance: number;
+          }
+        ).object;
+
+      return closest ? closest.name : null;
+    };
+
+    // Assign the function to the Valtio store
+    backgroundStore.findClosestObjectId = findClosestObjectId;
+  }, []);
+
   return (
     <group ref={ref}>
       {data.sort().map((item, i) => (
@@ -369,6 +406,7 @@ function Card({
     10
   );
   const navigate = useNavigate();
+  const location = useLocation();
   const ref = useRef<Group>(null);
   const [hovered, hover] = useState(false);
 
@@ -378,6 +416,8 @@ function Card({
   const pointerOut = () => hover(false);
   const click = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    const id = location.pathname.split("/")[2];
+    if (id === imageId) return;
     navigate(`/collections/${imageId}`);
   };
 
@@ -450,15 +490,19 @@ function Sphere({ radius, ...props }: SphereProps) {
     e.stopPropagation(), hover(true)
   );
   const pointerOut = () => hover(false);
-  const [distortion, setDistortion] = useState(0);
-  const [distortionScale, setDistortionScale] = useState(0);
+  const [distortion, setDistortion] = useState(0.2);
+  const [distortionScale, setDistortionScale] = useState(2);
   const [transmission, setTransmission] = useState(0.9);
+
   useCursor(hovered);
-  useFrame((_, delta) => {
-    setDistortion((v) => lerp(v, hovered ? 0.5 : 0.2, delta));
-    setDistortionScale((v) => lerp(v, hovered ? 0.3 : 2, delta));
-    setTransmission((v) => lerp(v, hovered ? 0.7 : 0.9, delta * 2));
-  });
+  // useFrame((_, delta) => {
+  //   setDistortion((v) => lerp(v, hovered ? 0.5 : 0.2, delta));
+  //   setDistortionScale((v) => lerp(v, hovered ? 0.3 : 2, delta));
+  //   setTransmission((v) => lerp(v, hovered ? 0.7 : 0.9, delta * 2));
+  // });
+
+  // const { onIncline, onDecline, onFallback, onChange } = usePerformanceMonitor()
+
   return (
     <mesh
       position={[0, 0, 0]}

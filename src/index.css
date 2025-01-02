@@ -21,6 +21,7 @@
   letter-spacing: -0.05em;
   --nav-height: var(--nav-height-mobile);
   --padding: var(--padding-mobile);
+  overscroll-behavior: none;
 }
 
 body {

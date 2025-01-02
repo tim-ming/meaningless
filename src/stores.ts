@@ -1,10 +1,10 @@
-import { create } from "zustand";
+import { Object3D } from "three";
+import { proxy } from "valtio";
 
-interface TransitioningState {
-  transitioning: boolean;
-  setTransitioning: (transitioning: boolean) => void;
-}
-export const useTransitionStore = create<TransitioningState>((set) => ({
-  transitioning: false,
-  setTransitioning: (transitioning) => set({ transitioning }),
-}));
+type BackgroundStore = {
+  findClosestObjectId: () => string | null;
+};
+
+export const backgroundStore = proxy<BackgroundStore>({
+  findClosestObjectId: () => null, // This will hold the function
+});

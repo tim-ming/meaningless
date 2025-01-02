@@ -7,7 +7,9 @@ interface WrapperProps {
 
 const Wrapper: React.FC<WrapperProps> = ({ children, extraClassName = "" }) => {
   return (
-    <div className={`p-8 h-full w-full ${extraClassName}`}>{children}</div>
+    <div className={`p-[var(--padding)] h-full w-full ${extraClassName}`}>
+      {children}
+    </div>
   );
 };
 

@@ -14,7 +14,7 @@ const Nav: React.FC<NavProps> = ({ position = "fixed" }) => {
       } justify-center`}
     >
       <Link to="/" className="flex flex-1 items-center">
-        <img src={Logo} alt="logo" className="w-12" />
+        <img src={Logo} alt="logo" className="w-9 sm:w-12" />
       </Link>
       <span className="flex flex-1 justify-end items-center gap-8">
         <Link to="/about" className="text-sm font-medium hover:underline">

@@ -31,16 +31,16 @@ const CollectionLayout = () => {
     navigate(`${to}`);
   }
   return (
-    <main className="flex flex-col w-screen absolute top-0 min-h-screen p-8 z-[999999] pointer-events-none">
+    <main className="flex flex-col w-screen absolute top-[calc(var(--nav-height)+10%-4rem)] px-4 sm:px-8 z-[999999] pointer-events-none">
       <div className="flex items-center pt-8 w-full justify-center">
-        <div className="flex items-center w-full justify-between max-w-[600px]">
+        <div className="flex items-center w-full justify-between max-w-[500px]">
           <button
             onClick={prev}
             className="flex rounded-full border-[1px] border-neutral-500 p-4 text-neutral-600"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8"
+              className="h-6 sm:h-8 w-6 sm:w-8"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -60,7 +60,7 @@ const CollectionLayout = () => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8"
+              className="h-6 sm:h-8 w-6 sm:w-8"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
