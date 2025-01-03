@@ -5,7 +5,7 @@ import Nav from "./components/Nav";
 const About: React.FC = () => {
   return (
     <>
-      <main className="flex flex-col justify-center min-h-screen p-8 absolute w-screen backdrop-blur-none sm:backdrop-blur-none bg-white bg-opacity-50 sm:bg-transparent">
+      <main className="flex flex-col justify-center min-h-full p-8 absolute w-screen backdrop-blur-none sm:backdrop-blur-none bg-white bg-opacity-50 sm:bg-transparent">
         <h1 className="text-5xl tracking-[-0.05em] font-bold mb-8 text-neutral-800">
           About
         </h1>

@@ -2,7 +2,7 @@ import { Object3D } from "three";
 import { proxy } from "valtio";
 
 type BackgroundStore = {
-  findClosestObjectId: () => string | null;
+  findClosestObjectId: (x: number, y: number) => string | null;
 };
 
 export const backgroundStore = proxy<BackgroundStore>({

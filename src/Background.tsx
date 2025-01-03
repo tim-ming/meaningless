@@ -4,6 +4,7 @@ import {
   MeshTransmissionMaterial,
   PerformanceMonitor,
   Preload,
+  Scroll,
   ScrollControls,
   useCursor,
   usePerformanceMonitor,
@@ -27,9 +28,11 @@ import { lerp } from "three/src/math/MathUtils.js";
 import data from "./assets/collections.json";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { TRANSITION } from "./helpers/constants";
-import { proxy, useSnapshot } from "valtio";
+import { proxy, subscribe, useSnapshot } from "valtio";
 import { backgroundStore } from "./stores";
 import { isMobile } from "react-device-detect";
+import { useGesture } from "@use-gesture/react";
+import { subscribeKey } from "valtio/utils";
 
 const THRESHOLD = 0.001;
 
@@ -44,7 +47,18 @@ interface Store {
     fov: number;
   };
   ids: string[];
+  delta: {
+    drag: {
+      x: number;
+      y: number;
+    };
+    wheel: {
+      x: number;
+      y: number;
+    };
+  };
 }
+
 const initialState: Store = {
   sceneRotation: new THREE.Euler(0, 0, 0),
   carouselRotation: 0,
@@ -55,14 +69,40 @@ const initialState: Store = {
     fov: 60,
   },
   ids: data.map((item) => item.id),
+  delta: {
+    drag: { x: 0, y: 0 },
+    wheel: { x: 0, y: 0 },
+  },
 };
 
 const store: Store = proxy<Store>({ ...initialState });
 
 export default function Background({}) {
   const [dpr, setDpr] = useState(1);
+  const location = useLocation();
+  const bind = useGesture({
+    onWheel: ({ delta: [deltaX, deltaY] }) => {
+      if (location.pathname === "/") {
+        store.delta.wheel = {
+          x: deltaX,
+          y: deltaY,
+        };
+      }
+    },
+    onDrag: ({ delta: [deltaX, deltaY] }) => {
+      if (location.pathname === "/") {
+        store.delta.drag = {
+          x: deltaX,
+          y: deltaY,
+        };
+      }
+    },
+  });
   return (
-    <div className="fixed w-full h-full top-0 left-0 bg-white">
+    <div
+      {...bind()}
+      className="fixed w-full h-full top-0 left-0 bg-white touch-none"
+    >
       <Canvas
         camera={{ position: [0, 0, 5], fov: store.cameraTarget.fov }}
         eventPrefix="client"
@@ -204,20 +244,11 @@ const Scene = () => {
           decay={0}
           castShadow
         />
-        <ScrollControls
-          horizontal
-          enabled={scrollEnabled}
-          pages={3}
-          infinite
-          distance={1}
-          damping={0.1}
-        >
-          <Rig enabled={rigEnabled}>
-            <Carousel radius={radius} />
-          </Rig>
-        </ScrollControls>
+        <Rig enabled={rigEnabled}>
+          <Carousel scrollEnabled={scrollEnabled} radius={radius} />
+        </Rig>
 
-        {/* <Sphere radius={circleRadius} /> */}
+        <Sphere radius={circleRadius} />
         <Ground yPos={-circleRadius} />
       </group>
     </>
@@ -266,7 +297,6 @@ interface RigProps extends GroupProps {
 function Rig({ enabled, ...props }: RigProps) {
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
-  const scroll = useScroll();
   const [isDelayed, setIsDelayed] = useState(false); // Store to trigger useFrame logic
 
   useEffect(() => {
@@ -283,7 +313,6 @@ function Rig({ enabled, ...props }: RigProps) {
     if (!isDelayed) return;
 
     easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
-    ref.current!.rotation.y = -scroll.offset * (Math.PI * 2); // Rotate contents
 
     easing.damp3(
       state.camera.position,
@@ -325,10 +354,10 @@ function Rig({ enabled, ...props }: RigProps) {
   );
 }
 
-function Carousel({ radius = 2 }) {
+function Carousel({ scrollEnabled, radius = 2 }) {
   const ref = useRef<Group>(null);
   const { camera } = useThree();
-
+  const location = useLocation();
   useFrame((_, delta) => {
     if (location.pathname == "/about") {
       store.sceneRotation.y += 0.3 * delta;
@@ -362,6 +391,19 @@ function Carousel({ radius = 2 }) {
 
     // Assign the function to the Valtio store
     backgroundStore.findClosestObjectId = findClosestObjectId;
+
+    const dragUnsub = subscribeKey(store.delta, "drag", () => {
+      store.sceneRotation.y += store.delta.drag.x * 0.005;
+    });
+
+    const wheelUnsub = subscribeKey(store.delta, "wheel", () => {
+      store.sceneRotation.y += -store.delta.wheel.x * 0.01;
+    });
+
+    return () => {
+      dragUnsub();
+      wheelUnsub();
+    };
   }, []);
 
   return (
