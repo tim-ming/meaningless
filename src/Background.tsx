@@ -3,7 +3,6 @@ import {
   MeshReflectorMaterial,
   MeshTransmissionMaterial,
   PerformanceMonitor,
-  PerformanceMonitorApi,
   Preload,
   useCursor,
   usePerformanceMonitor,
@@ -19,6 +18,7 @@ import {
 import { useGesture } from "@use-gesture/react";
 import { easing } from "maath";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { isMobile } from "react-device-detect";
 import { useLocation, useNavigate } from "react-router";
 import * as THREE from "three";
 import { Group } from "three";
@@ -28,20 +28,8 @@ import data from "./assets/collections.json";
 import { TRANSITION } from "./helpers/constants";
 import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
-import { isMobile } from "react-device-detect";
-
-const THRESHOLD = 0.001;
 
 interface Store {
-  carouselRotation: THREE.Euler;
-
-  prevRoute: string;
-  cameraTarget: {
-    pos: THREE.Vector3;
-    rot: THREE.Euler;
-  };
-
-  ids: string[];
   delta: {
     drag: {
       x: number;
@@ -55,20 +43,11 @@ interface Store {
 }
 
 const initialState: Store = {
-  carouselRotation: new THREE.Euler(0, 0, 0),
-  prevRoute: "",
-  cameraTarget: {
-    pos: new THREE.Vector3(0, 0, 5),
-    rot: new THREE.Euler(0, 0, 0),
-  },
-  ids: data.map((item) => item.id),
   delta: {
     drag: { x: 0, y: 0 },
     wheel: { x: 0, y: 0 },
   },
 };
-
-const CAMERA_POS: THREE.Vector3Tuple = [0, 1, 9];
 
 const store: Store = proxy<Store>({ ...initialState });
 
@@ -103,7 +82,6 @@ export default function Background({}) {
           eventPrefix="client"
           shadows
           frameloop="always"
-          // frameloop="never"
         >
           <Suspense fallback={null}>
             <PerformanceMonitor flipflops={3}>
@@ -111,152 +89,204 @@ export default function Background({}) {
             </PerformanceMonitor>
             <Preload all />
           </Suspense>
-          {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
         </Canvas>
       </div>
     </>
   );
 }
 
-/**
- * Calculate the camera target position and rotation to face the object
- * @param obj Object to face the camera
- * @param distance Distance from the object
- * @returns Camera target position and rotation
- */
-function calculateCameraTarget(
-  obj: THREE.Object3D,
-  distance = 2
-): {
-  pos: THREE.Vector3;
-  rot: THREE.Euler;
-} {
-  // Get the object's world quaternion and position
-  const q = obj.getWorldQuaternion(new THREE.Quaternion());
-  const p = obj.getWorldPosition(new THREE.Vector3());
-
-  // Calculate the direction vector from the target position to the object
-  const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(q).normalize();
-
-  // Calculate the target position
-  const targetPos = p.clone().sub(direction.multiplyScalar(distance));
-
-  // Compute the quaternion for the camera to face p
-  const lookDirection = p.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to p
-  const cameraQuaternion = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(0, 0, -1),
-    lookDirection
-  );
-
-  // Adjust the camera's rotation
-  const cameraRotation = new THREE.Euler().setFromQuaternion(cameraQuaternion);
-
-  return {
-    pos: new THREE.Vector3(0, 0.2, 0).add(targetPos),
-    rot: cameraRotation,
-  };
-}
-
 const Scene = () => {
-  const [rigEnabled, setRigEnabled] = useState(false);
-  const ref = useRef<Group>(null);
   const radius = 2;
   const circleRadius = radius / 1.8;
-  const location = useLocation();
+  const spotLightRef = useRef<THREE.SpotLight>(null);
+  const { gl } = useThree();
 
-  useEffect(() => {
-    if (location.pathname === "/") {
-      store.cameraTarget.pos.set(0, 0, 5);
-      store.cameraTarget.rot.set(0, 0, 0);
+  usePerformanceMonitor({
+    onChange: ({ factor }) => {
+      gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
 
-      setRigEnabled(true);
-    } else if (/\/collections\/\d+/.test(location.pathname)) {
-      setRigEnabled(false);
+      if (spotLightRef.current) {
+        const res = 2 ** Math.floor(5 + 4 * factor);
 
-      const id = location.pathname.split("/")[2];
-      const obj = ref.current?.getObjectByName(id);
+        if (spotLightRef.current.shadow.mapSize.x == res) return;
 
-      if (obj) {
-        const prevRouteId = store.prevRoute.split("/")[2];
-        if (!prevRouteId) {
-          const { pos, rot } = calculateCameraTarget(obj, 2.5);
-
-          store.cameraTarget.pos.copy(pos);
-          store.cameraTarget.rot.copy(rot);
-        }
+        spotLightRef.current.shadow.mapSize.set(res, res);
+        spotLightRef.current.shadow.map?.setSize(res, res);
       }
-    } else if (location.pathname === "/about") {
-      setRigEnabled(false);
-
-      store.cameraTarget.pos.set(0, 2, 5);
-      store.cameraTarget.rot.set(-0.2, 0, -Math.PI / 2.2);
-    }
-    store.prevRoute = location.pathname;
-  }, [location]);
+    },
+  });
 
   return (
     <>
-      <PerformanceController />
-      <CameraController />
-      {/* <color attach="background" args={["#fff"]} /> */}
-      <fog attach="fog" args={["#fff", 4, 20]} />
-      <group ref={ref}>
-        <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
-        <spotLight
-          name="spotLight"
-          angle={0.8}
-          position={[0, 5, 0]}
-          intensity={0.5}
-          decay={0}
-          castShadow
-          shadow-mapSize={[128, 128]}
-        />
-        <Rig enabled={rigEnabled}>
-          <Carousel radius={radius} />
-        </Rig>
+      <fog attach="fog" args={["#eee", 4, 20]} />
+      <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
+      <spotLight
+        ref={spotLightRef}
+        angle={0.8}
+        position={[0, 5, 0]}
+        intensity={0.5}
+        decay={0}
+        castShadow
+        shadow-mapSize={[128, 128]}
+      />
+      <Rig>
+        <Carousel radius={radius} />
+      </Rig>
 
-        <Sphere radius={circleRadius} />
-        <Ground yPos={-circleRadius} />
-      </group>
+      <Sphere radius={circleRadius} />
+      <Ground yPos={-circleRadius} />
     </>
   );
 };
 
-const PerformanceController = () => {
-  const { gl, scene } = useThree();
-  usePerformanceMonitor({
-    onChange: ({ factor }) => {
-      gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
-      const spotLight = scene.getObjectByName("spotLight") as THREE.SpotLight;
+interface RigProps extends GroupProps {}
 
-      if (spotLight) {
-        const res = 2 ** Math.floor(5 + 4 * factor);
+function Rig({ ...props }: RigProps) {
+  const [isDelayed, setIsDelayed] = useState(false);
 
-        if (spotLight.shadow.mapSize.x == res) return;
+  const { scene, camera } = useThree();
 
-        spotLight.shadow.mapSize.set(res, res);
-        spotLight.shadow.map?.setSize(res, res);
-
-        console.log(spotLight.shadow.mapSize);
-      }
-      // if (gl) {
-      //   gl.shadowMap.enabled = factor > 0.8;
-      // }
-    },
+  const carouselRef = useRef<Group>(null);
+  const carouselRotation = useRef(new THREE.Euler());
+  const cameraTarget = useRef({
+    pos: new THREE.Vector3(),
+    rot: new THREE.Euler(),
   });
+  const prevRoute = useRef("");
 
-  return <></>;
-};
+  const ids = data.map((item) => item.id);
+  const THRESHOLD = 0.001;
 
-const CameraController = () => {
+  // variables, for memory allocation
+  const v = new THREE.Vector3();
+  const toCamera = new THREE.Vector3(0, 0, -1); // Default camera forward direction
+  const e = new THREE.Euler();
   const [q1, q2] = [new THREE.Quaternion(), new THREE.Quaternion()];
-  useFrame((state, delta) => {
-    if (location.pathname === "/") return;
+  const CAMERA_POS: THREE.Vector3Tuple = [0, 1, 9];
+  const SCENE_CENTER = new THREE.Vector3(0, 0, 0);
+  const CLOSE_UP_OFFSET = new THREE.Vector3(0, 0.2, 0);
 
-    const currentPos = state.camera.position;
-    const targetPos = store.cameraTarget.pos;
-    const currentRot = state.camera.rotation;
-    const targetRot = store.cameraTarget.rot;
+  /**
+   * Calculate camera target position and rotation to face object
+   * @param obj Object to face camera
+   * @param distance Distance from object
+   * @returns Camera target position and rotation
+   */
+  function calculateCameraTarget(
+    obj: THREE.Object3D,
+    distance = 2
+  ): {
+    pos: THREE.Vector3;
+    rot: THREE.Euler;
+  } {
+    // Get the object's world quaternion and position
+    obj.getWorldQuaternion(q1);
+    obj.getWorldPosition(v);
+
+    // Calculate the direction vector from the target position to the object
+    const direction = new THREE.Vector3(0, 0, 1)
+      .applyQuaternion(q1)
+      .normalize();
+
+    // Calculate the target position
+    const targetPos = v.clone().sub(direction.multiplyScalar(distance));
+
+    // Compute the quaternion for the camera to face v
+    const lookDirection = v.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to v
+    const cameraQuaternion = q2.setFromUnitVectors(toCamera, lookDirection);
+
+    // Adjust the camera's rotation
+    const cameraRotation = e.setFromQuaternion(cameraQuaternion);
+
+    return {
+      pos: targetPos.add(CLOSE_UP_OFFSET),
+      rot: cameraRotation,
+    };
+  }
+
+  /**
+   * Get rotation for carousel to rotate to next route
+   * @param prevRouteId Previous route id
+   * @param currentRouteObj Current route object
+   * @returns
+   */
+  function getCarouselRotation(
+    prevRouteId: string,
+    currentRouteObj: THREE.Object3D
+  ) {
+    const prevRouteObj = scene.getObjectByName(prevRouteId);
+    if (prevRouteObj) {
+      const units = getShortestDistance(
+        prevRouteObj.userData.index,
+        currentRouteObj.userData.index,
+        ids.length
+      );
+
+      return e.set(0, -units * ((Math.PI * 2) / ids.length), 0) as THREE.Euler;
+    }
+    return e.set(0, 0, 0) as THREE.Euler;
+  }
+
+  /**
+   * Move camera, affected by pointer movement
+   * @param target Target position
+   * @param pointer Pointer position
+   * @param camera Camera
+   * @param delta Time delta
+   */
+  function pointerMoveCamera(
+    target: THREE.Vector3Tuple,
+    pointer: THREE.Vector2,
+    camera: THREE.Camera,
+    delta: number
+  ) {
+    const cameraPos: THREE.Vector3Tuple = isMobile
+      ? target
+      : [
+          -pointer.x * 1 + target[0],
+          pointer.y * 0.5 + target[1],
+          pointer.y / 3 + target[2],
+        ];
+
+    easing.damp3(camera.position, cameraPos, 0.3, delta);
+  }
+
+  /**
+   * Rotate camera to face target
+   * @param target Target position
+   * @param camera Camera
+   * @param delta Time delta
+   */
+  function rotateCamera(
+    target: THREE.Vector3,
+    camera: THREE.Camera,
+    delta: number
+  ) {
+    // direction vector from camera to target
+    const cameraDirection = v.subVectors(target, camera.position).normalize();
+
+    // quaternion for camera to face target
+    q1.setFromUnitVectors(toCamera, cameraDirection);
+    const euler = e.setFromQuaternion(q1);
+
+    easing.dampE(camera.rotation, euler, 0.2, delta);
+  }
+
+  /**
+   * Move camera to target position and rotation
+   * @param camera Camera
+   * @param delta Time delta
+   * @param targetPos Target position
+   * @param targetRot Target rotation
+   */
+  function moveCamera(
+    camera: THREE.Camera,
+    delta: number,
+    targetPos: THREE.Vector3,
+    targetRot: THREE.Euler
+  ) {
+    const currentPos = camera.position;
+    const currentRot = camera.rotation;
 
     // Check if position and rotation differences are below the threshold
     const posDone = currentPos.distanceTo(targetPos) < THRESHOLD;
@@ -268,101 +298,30 @@ const CameraController = () => {
       return;
     }
 
-    easing.damp3(
-      state.camera.position,
-      [...store.cameraTarget.pos.toArray()],
-      0.3,
-      delta
-    );
-    easing.dampE(
-      state.camera.rotation,
-      [...store.cameraTarget.rot.toArray()],
-      0.3,
-      delta
-    );
-  });
-  return <></>;
-};
+    easing.damp3(camera.position, targetPos, 0.3, delta);
+    easing.dampE(camera.rotation, targetRot, 0.3, delta);
+  }
 
-interface RigProps extends GroupProps {
-  enabled: boolean;
-}
+  /**
+   * Rotate carousel
+   * @param delta delta time
+   * @param targetRotation Target rotation
+   */
+  function rotateCarousel(delta: number, targetRotation: THREE.Euler) {
+    easing.dampE(carouselRef.current!.rotation, targetRotation, 0.1, delta);
+  }
 
-function Rig({ enabled, ...props }: RigProps) {
-  const outerRef = useRef<Group>(null);
-  const ref = useRef<Group>(null);
-  const [isDelayed, setIsDelayed] = useState(false); // Store to trigger useFrame logic
+  // one-time onmount effects:
+  // subscribe to drag and wheel events, assign findClosestObjectId to the store
   useEffect(() => {
     // Delay the useFrame execution by 1 second
     const timeout = setTimeout(() => {
       setIsDelayed(true);
     }, TRANSITION.DURATION_S / 2);
 
-    return () => clearTimeout(timeout); // Cleanup timeout on unmount
-  }, []);
-
-  // Calculate the Euler angles required to look at (0, 0, 0)
-  const target = new THREE.Vector3(0, 0, 0);
-  const v = new THREE.Vector3(0, 0, 0);
-  const q = new THREE.Quaternion();
-  const toCamera = new THREE.Vector3(0, 0, -1); // Default camera forward direction
-  const e = new THREE.Euler();
-
-  useFrame((state, delta) => {
-    if (!enabled) return;
-    if (!isDelayed) return;
-
-    easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
-
-    const cameraPos: THREE.Vector3Tuple = isMobile
-      ? CAMERA_POS
-      : [
-          -state.pointer.x * 1 + CAMERA_POS[0],
-          state.pointer.y * 0.5 + CAMERA_POS[1],
-          state.pointer.y / 3 + CAMERA_POS[2],
-        ];
-
-    // Move camera
-    easing.damp3(state.camera.position, cameraPos, 0.3, delta);
-
-    // Compute the direction vector from the camera to the target
-    const cameraDirection = v
-      .subVectors(target, state.camera.position)
-      .normalize();
-
-    // Create a quaternion to represent the rotation towards the target
-    q.setFromUnitVectors(toCamera, cameraDirection);
-
-    // Convert the quaternion to Euler angles
-    const euler = e.setFromQuaternion(q);
-
-    // Smoothly rotate the camera towards the target using damping
-    easing.dampE(state.camera.rotation, euler, 0.2, delta);
-  });
-
-  return (
-    <group ref={outerRef} rotation={[0, 2, 0]}>
-      <group ref={ref} {...props} />
-    </group>
-  );
-}
-
-function Carousel({ radius = 2 }) {
-  const ref = useRef<Group>(null);
-  const { camera, scene } = useThree();
-  const location = useLocation();
-
-  useFrame((_, delta) => {
-    if (location.pathname == "/about") {
-      store.carouselRotation.y += 0.3 * delta;
-    }
-    easing.dampE(ref.current!.rotation, store.carouselRotation, 0.1, delta);
-  });
-
-  useEffect(() => {
     const findClosestObjectId = () => {
-      if (!ref.current) return null;
-      const objects = ref.current.children;
+      if (!carouselRef.current) return null;
+      const objects = carouselRef.current.children;
 
       const closest = objects
         .map((object) => ({
@@ -387,74 +346,96 @@ function Carousel({ radius = 2 }) {
     backgroundStore.findClosestObjectId = findClosestObjectId;
 
     const dragUnsub = subscribeKey(store.delta, "drag", () => {
-      store.carouselRotation.y += store.delta.drag.x * 0.005;
+      carouselRotation.current.y += store.delta.drag.x * 0.005;
     });
 
     const wheelUnsub = subscribeKey(store.delta, "wheel", () => {
-      store.carouselRotation.y +=
+      carouselRotation.current.y +=
         (-store.delta.wheel.x + -store.delta.wheel.y) * 0.008;
     });
 
     return () => {
       dragUnsub();
       wheelUnsub();
+      clearTimeout(timeout);
     };
   }, []);
 
+  // route change effects
   useEffect(() => {
-    // if any unexpected behavior happens, do check the prevRoute settings in Scene.
-    if (location.pathname === "/") {
-      store.carouselRotation = initialState.carouselRotation;
-    } else if (/\/collections\/\d+/.test(location.pathname)) {
-      store.carouselRotation = initialState.carouselRotation;
-
+    if (/\/collections\/\d+/.test(location.pathname)) {
       const id = location.pathname.split("/")[2];
-      const obj = ref.current?.getObjectByName(id);
+      const currentRouteObj = scene.getObjectByName(id);
 
-      if (obj) {
-        const prevRouteId = store.prevRoute.split("/")[2];
-        if (prevRouteId) {
-          const prevRouteObj = scene.getObjectByName(prevRouteId);
-          if (prevRouteObj) {
-            const units = getShortestDistance(
-              prevRouteObj.userData.index,
-              obj.userData.index,
-              store.ids.length
-            );
+      if (currentRouteObj) {
+        const prevRouteId = prevRoute.current.split("/")[2];
+        if (!prevRouteId) {
+          // lock camera to the object
+          const { pos, rot } = calculateCameraTarget(currentRouteObj, 2.5);
 
-            const rotation =
-              store.carouselRotation.y -
-              units * ((Math.PI * 2) / store.ids.length);
-
-            store.carouselRotation.set(
-              store.carouselRotation.x,
-              rotation,
-              store.carouselRotation.z
-            );
-          }
+          cameraTarget.current.pos.copy(pos);
+          cameraTarget.current.rot.copy(rot);
+        } else {
+          const rot = getCarouselRotation(prevRouteId, currentRouteObj);
+          carouselRotation.current.set(
+            carouselRotation.current.x + rot.x,
+            carouselRotation.current.y + rot.y,
+            carouselRotation.current.z + rot.z
+          );
         }
       }
+    } else if (location.pathname === "/about") {
+      cameraTarget.current.pos.set(0, 2, 5);
+      cameraTarget.current.rot.set(-0.2, 0, -Math.PI / 2.2);
     }
-  }, [location]);
+    prevRoute.current = location.pathname;
+  }, [location.pathname]);
+
+  // render loop
+  useFrame((state, delta) => {
+    if (!isDelayed) return;
+
+    if (location.pathname === "/") {
+      pointerMoveCamera(CAMERA_POS, state.pointer, state.camera, delta);
+      rotateCamera(SCENE_CENTER, state.camera, delta);
+    } else {
+      moveCamera(
+        state.camera,
+        delta,
+        cameraTarget.current.pos,
+        cameraTarget.current.rot
+      );
+    }
+    if (location.pathname == "/about") {
+      carouselRotation.current.y += 0.3 * delta;
+    }
+    rotateCarousel(delta, carouselRotation.current);
+  });
 
   return (
-    <group ref={ref}>
-      {data.sort().map((item, i) => (
-        <Card
-          index={i}
-          key={item.id}
-          imageUrl={item.image}
-          imageId={item.id}
-          position={[
-            Math.sin((i / data.length) * Math.PI * 2) * radius,
-            0,
-            Math.cos((i / data.length) * Math.PI * 2) * radius,
-          ]}
-          rotation={[0, Math.PI + (i / data.length) * Math.PI * 2, 0]}
-        />
-      ))}
+    <group rotation={[0, 2, 0]}>
+      <group ref={carouselRef} {...props} />
     </group>
   );
+}
+
+function Carousel({ radius = 2 }) {
+  return data
+    .sort()
+    .map((item, i) => (
+      <Card
+        index={i}
+        key={item.id}
+        imageUrl={item.image}
+        imageId={item.id}
+        position={[
+          Math.sin((i / data.length) * Math.PI * 2) * radius,
+          0,
+          Math.cos((i / data.length) * Math.PI * 2) * radius,
+        ]}
+        rotation={[0, Math.PI + (i / data.length) * Math.PI * 2, 0]}
+      />
+    ));
 }
 
 interface CardProps extends GroupProps {
@@ -476,21 +457,27 @@ function Card({
     backPlateSize,
     backPlateSize,
     0.1,
-    10
+    16
   );
   const navigate = useNavigate();
   const location = useLocation();
   const ref = useRef<Group>(null);
   const [hovered, hover] = useState(false);
 
-  const pointerOver = (e: ThreeEvent<PointerEvent>) => (
-    e.stopPropagation(), hover(true)
-  );
+  const pointerOver = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    hover(true);
+  };
+
   const pointerOut = () => hover(false);
+
   const click = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+
     const id = location.pathname.split("/")[2];
+
     if (id === imageId) return;
+
     navigate(`/collections/${imageId}`);
   };
 
@@ -499,6 +486,7 @@ function Card({
   useFrame((_, delta) => {
     const id = location.pathname.split("/")[2];
     const isObj = id ? imageId == id : false;
+
     ref.current!.children.forEach((child) => {
       const mesh = child as THREE.Mesh;
 
@@ -506,13 +494,6 @@ function Card({
       easing.damp3(mesh.scale, hovered || isObj ? 1.2 : 1, 0.2, delta);
 
       // Adjust material properties
-      easing.damp(
-        mesh.material,
-        "radius",
-        hovered || isObj ? 0.05 : 0.1,
-        0.2,
-        delta
-      );
       easing.damp(
         mesh.material,
         "zoom",
@@ -538,6 +519,7 @@ function Card({
         transparent
         side={THREE.DoubleSide}
         castShadow
+        radius={0.08}
       >
         <planeGeometry args={[1, 1]} />
       </Image>
@@ -548,7 +530,11 @@ function Card({
         castShadow
         geometry={backPlateGeometry}
       >
-        <meshBasicMaterial color="white" side={THREE.FrontSide} />
+        <meshPhongMaterial
+          emissive="#ddd"
+          color="white"
+          side={THREE.DoubleSide}
+        />
       </mesh>
     </group>
   );
@@ -559,12 +545,12 @@ interface SphereProps extends MeshProps {
 
 function Sphere({ radius }: SphereProps) {
   const [hovered, hover] = useState(false);
+  const [samples, setSamples] = useState(4);
 
   const pointerOver = (e: ThreeEvent<PointerEvent>) => (
     e.stopPropagation(), hover(true)
   );
   const pointerOut = () => hover(false);
-  const [samples, setSamples] = useState(4);
 
   useCursor(hovered);
 
