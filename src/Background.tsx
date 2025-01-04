@@ -3,6 +3,7 @@ import {
   MeshReflectorMaterial,
   MeshTransmissionMaterial,
   PerformanceMonitor,
+  PerformanceMonitorApi,
   Preload,
   Scroll,
   ScrollControls,
@@ -33,6 +34,7 @@ import { backgroundStore } from "./stores";
 import { isMobile } from "react-device-detect";
 import { useGesture } from "@use-gesture/react";
 import { subscribeKey } from "valtio/utils";
+import { g } from "motion/react-client";
 
 const THRESHOLD = 0.001;
 
@@ -230,8 +232,16 @@ const Scene = () => {
     store.prevRoute = location.pathname;
   }, [location]);
 
+  const onChange = (api: PerformanceMonitorApi) => {
+    if (api.factor < 0.5) {
+    }
+  };
+
+  usePerformanceMonitor({ onChange });
+
   return (
     <>
+      <PerformanceController />
       <CameraController />
       {/* <color attach="background" args={["#fff"]} /> */}
       <fog attach="fog" args={["#fff", 4, 20]} />
@@ -255,7 +265,23 @@ const Scene = () => {
   );
 };
 
+const PerformanceController = () => {
+  const { gl } = useThree();
+  usePerformanceMonitor({
+    onChange: ({ factor }) => {
+      gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
+      if (gl) {
+        gl.shadowMap.enabled = factor >= 0.5;
+      }
+      console.log(factor);
+    },
+  });
+
+  return <></>;
+};
+
 const CameraController = () => {
+  const [q1, q2] = [new THREE.Quaternion(), new THREE.Quaternion()];
   useFrame((state, delta) => {
     if (location.pathname === "/") return;
 
@@ -267,9 +293,8 @@ const CameraController = () => {
     // Check if position and rotation differences are below the threshold
     const posDone = currentPos.distanceTo(targetPos) < THRESHOLD;
     const rotDone =
-      new THREE.Quaternion()
-        .setFromEuler(currentRot)
-        .angleTo(new THREE.Quaternion().setFromEuler(targetRot)) < THRESHOLD;
+      q1.setFromEuler(currentRot).angleTo(q2.setFromEuler(targetRot)) <
+      THRESHOLD;
 
     if (posDone && rotDone) {
       return;
@@ -298,7 +323,6 @@ function Rig({ enabled, ...props }: RigProps) {
   const outerRef = useRef<Group>(null);
   const ref = useRef<Group>(null);
   const [isDelayed, setIsDelayed] = useState(false); // Store to trigger useFrame logic
-
   useEffect(() => {
     // Delay the useFrame execution by 1 second
     const timeout = setTimeout(() => {
@@ -308,6 +332,12 @@ function Rig({ enabled, ...props }: RigProps) {
     return () => clearTimeout(timeout); // Cleanup timeout on unmount
   }, []);
 
+  // Calculate the Euler angles required to look at (0, 0, 0)
+  const target = new THREE.Vector3(0, 0, 0);
+  const v = new THREE.Vector3(0, 0, 0);
+  const q = new THREE.Quaternion();
+  const toCamera = new THREE.Vector3(0, 0, -1); // Default camera forward direction
+  const e = new THREE.Euler();
   useFrame((state, delta) => {
     if (!enabled) return;
     if (!isDelayed) return;
@@ -325,23 +355,16 @@ function Rig({ enabled, ...props }: RigProps) {
       delta
     ); // Move camera
 
-    // Calculate the Euler angles required to look at (0, 0, 0)
-    const target = new THREE.Vector3(0, 0, 0);
-
     // Compute the direction vector from the camera to the target
-    const cameraDirection = new THREE.Vector3()
+    const cameraDirection = v
       .subVectors(target, state.camera.position)
       .normalize();
 
     // Create a quaternion to represent the rotation towards the target
-    const quaternion = new THREE.Quaternion();
-    quaternion.setFromUnitVectors(
-      new THREE.Vector3(0, 0, -1), // Default camera forward direction
-      cameraDirection
-    );
+    q.setFromUnitVectors(toCamera, cameraDirection);
 
     // Convert the quaternion to Euler angles
-    const euler = new THREE.Euler().setFromQuaternion(quaternion);
+    const euler = e.setFromQuaternion(q);
 
     // Smoothly rotate the camera towards the target using damping
     easing.dampE(state.camera.rotation, euler, 0.2, delta);
@@ -397,7 +420,8 @@ function Carousel({ scrollEnabled, radius = 2 }) {
     });
 
     const wheelUnsub = subscribeKey(store.delta, "wheel", () => {
-      store.sceneRotation.y += -store.delta.wheel.x * 0.01;
+      store.sceneRotation.y +=
+        (-store.delta.wheel.x + -store.delta.wheel.y) * 0.008;
     });
 
     return () => {
@@ -535,6 +559,7 @@ function Sphere({ radius, ...props }: SphereProps) {
   const [distortion, setDistortion] = useState(0.2);
   const [distortionScale, setDistortionScale] = useState(2);
   const [transmission, setTransmission] = useState(0.9);
+  const [samples, setSamples] = useState(4);
 
   useCursor(hovered);
   // useFrame((_, delta) => {
@@ -543,7 +568,15 @@ function Sphere({ radius, ...props }: SphereProps) {
   //   setTransmission((v) => lerp(v, hovered ? 0.7 : 0.9, delta * 2));
   // });
 
-  // const { onIncline, onDecline, onFallback, onChange } = usePerformanceMonitor()
+  const onIncline = () => {
+    setSamples(4);
+  };
+
+  const onDecline = () => {
+    setSamples(1);
+  };
+
+  usePerformanceMonitor({ onIncline, onDecline });
 
   return (
     <mesh
@@ -555,7 +588,7 @@ function Sphere({ radius, ...props }: SphereProps) {
       <sphereGeometry args={[radius, 64, 32]} />
       <MeshTransmissionMaterial
         backside
-        samples={4}
+        samples={samples}
         thickness={5}
         chromaticAberration={0.02}
         // anisotropy={0.05}
@@ -569,13 +602,24 @@ function Sphere({ radius, ...props }: SphereProps) {
 }
 
 function Ground({ yPos }: { yPos: number }) {
+  const [res, setRes] = useState(2048);
+  const onIncline = () => {
+    setRes(2048);
+  };
+
+  const onDecline = () => {
+    setRes(512);
+  };
+
+  usePerformanceMonitor({ onIncline, onDecline });
+
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, yPos, 0]}>
       <circleGeometry args={[4, 100]} />
       <MeshReflectorMaterial
         mirror={0}
         blur={[300, 300]}
-        resolution={2048}
+        resolution={res}
         mixBlur={1}
         mixStrength={10}
         roughness={0.5}
