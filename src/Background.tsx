@@ -5,12 +5,8 @@ import {
   PerformanceMonitor,
   PerformanceMonitorApi,
   Preload,
-  Scroll,
-  ScrollControls,
   useCursor,
   usePerformanceMonitor,
-  useProgress,
-  useScroll,
 } from "@react-three/drei";
 import {
   Canvas,
@@ -20,34 +16,31 @@ import {
   useFrame,
   useThree,
 } from "@react-three/fiber";
+import { useGesture } from "@use-gesture/react";
 import { easing } from "maath";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import * as THREE from "three";
-import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { Group } from "three";
-import { lerp } from "three/src/math/MathUtils.js";
+import { proxy } from "valtio";
+import { subscribeKey } from "valtio/utils";
 import data from "./assets/collections.json";
-import { useLocation, useNavigate, useParams } from "react-router";
 import { TRANSITION } from "./helpers/constants";
-import { proxy, subscribe, useSnapshot } from "valtio";
+import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
 import { isMobile } from "react-device-detect";
-import { useGesture } from "@use-gesture/react";
-import { subscribeKey } from "valtio/utils";
-import { g } from "motion/react-client";
 
 const THRESHOLD = 0.001;
 
 interface Store {
-  sceneRotation: THREE.Euler;
+  carouselRotation: THREE.Euler;
 
-  carouselRotation: number;
   prevRoute: string;
   cameraTarget: {
     pos: THREE.Vector3;
     rot: THREE.Euler;
-    fov: number;
   };
+
   ids: string[];
   delta: {
     drag: {
@@ -62,13 +55,11 @@ interface Store {
 }
 
 const initialState: Store = {
-  sceneRotation: new THREE.Euler(0, 0, 0),
-  carouselRotation: 0,
+  carouselRotation: new THREE.Euler(0, 0, 0),
   prevRoute: "",
   cameraTarget: {
     pos: new THREE.Vector3(0, 0, 5),
     rot: new THREE.Euler(0, 0, 0),
-    fov: 60,
   },
   ids: data.map((item) => item.id),
   delta: {
@@ -77,10 +68,11 @@ const initialState: Store = {
   },
 };
 
+const CAMERA_POS: THREE.Vector3Tuple = [0, 1, 9];
+
 const store: Store = proxy<Store>({ ...initialState });
 
 export default function Background({}) {
-  const [dpr, setDpr] = useState(1);
   const location = useLocation();
   const bind = useGesture({
     onWheel: ({ delta: [deltaX, deltaY] }) => {
@@ -101,31 +93,28 @@ export default function Background({}) {
     },
   });
   return (
-    <div
-      {...bind()}
-      className="fixed w-full h-full top-0 left-0 bg-white touch-none"
-    >
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: store.cameraTarget.fov }}
-        eventPrefix="client"
-        shadows
-        frameloop="always"
-        // frameloop="never"
-        dpr={dpr}
+    <>
+      <div
+        {...bind()}
+        className="fixed w-full h-full top-0 left-0 bg-white touch-none"
       >
-        <Suspense fallback={null}>
-          <PerformanceMonitor
-            onIncline={() => setDpr(1.5)}
-            onDecline={() => setDpr(1)}
-            flipflops={3}
-          >
-            <Scene />
-          </PerformanceMonitor>
-          <Preload all />
-        </Suspense>
-        {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
-      </Canvas>
-    </div>
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 60 }}
+          eventPrefix="client"
+          shadows
+          frameloop="always"
+          // frameloop="never"
+        >
+          <Suspense fallback={null}>
+            <PerformanceMonitor flipflops={3}>
+              <Scene />
+            </PerformanceMonitor>
+            <Preload all />
+          </Suspense>
+          {/* <Environment preset="studio" environmentIntensity={0.01} /> */}
+        </Canvas>
+      </div>
+    </>
   );
 }
 
@@ -170,7 +159,6 @@ function calculateCameraTarget(
 
 const Scene = () => {
   const [rigEnabled, setRigEnabled] = useState(false);
-  const [scrollEnabled, setScrollEnabled] = useState(false);
   const ref = useRef<Group>(null);
   const radius = 2;
   const circleRadius = radius / 1.8;
@@ -181,15 +169,9 @@ const Scene = () => {
       store.cameraTarget.pos.set(0, 0, 5);
       store.cameraTarget.rot.set(0, 0, 0);
 
-      store.sceneRotation = initialState.sceneRotation;
-
       setRigEnabled(true);
-      setScrollEnabled(true);
     } else if (/\/collections\/\d+/.test(location.pathname)) {
-      store.sceneRotation = initialState.sceneRotation;
-
       setRigEnabled(false);
-      setScrollEnabled(false);
 
       const id = location.pathname.split("/")[2];
       const obj = ref.current?.getObjectByName(id);
@@ -201,43 +183,16 @@ const Scene = () => {
 
           store.cameraTarget.pos.copy(pos);
           store.cameraTarget.rot.copy(rot);
-        } else {
-          const prevRouteObj = ref.current?.getObjectByName(prevRouteId);
-          if (prevRouteObj) {
-            const units = getShortestDistance(
-              prevRouteObj.userData.index,
-              obj.userData.index,
-              store.ids.length
-            );
-
-            const rotation =
-              store.sceneRotation.y -
-              units * ((Math.PI * 2) / store.ids.length);
-
-            store.sceneRotation.set(
-              store.sceneRotation.x,
-              rotation,
-              store.sceneRotation.z
-            );
-          }
         }
       }
     } else if (location.pathname === "/about") {
       setRigEnabled(false);
-      setScrollEnabled(false);
 
       store.cameraTarget.pos.set(0, 2, 5);
       store.cameraTarget.rot.set(-0.2, 0, -Math.PI / 2.2);
     }
     store.prevRoute = location.pathname;
   }, [location]);
-
-  const onChange = (api: PerformanceMonitorApi) => {
-    if (api.factor < 0.5) {
-    }
-  };
-
-  usePerformanceMonitor({ onChange });
 
   return (
     <>
@@ -248,14 +203,16 @@ const Scene = () => {
       <group ref={ref}>
         <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
         <spotLight
+          name="spotLight"
           angle={0.8}
           position={[0, 5, 0]}
           intensity={0.5}
           decay={0}
           castShadow
+          shadow-mapSize={[128, 128]}
         />
         <Rig enabled={rigEnabled}>
-          <Carousel scrollEnabled={scrollEnabled} radius={radius} />
+          <Carousel radius={radius} />
         </Rig>
 
         <Sphere radius={circleRadius} />
@@ -266,14 +223,25 @@ const Scene = () => {
 };
 
 const PerformanceController = () => {
-  const { gl } = useThree();
+  const { gl, scene } = useThree();
   usePerformanceMonitor({
     onChange: ({ factor }) => {
       gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
-      if (gl) {
-        gl.shadowMap.enabled = factor >= 0.5;
+      const spotLight = scene.getObjectByName("spotLight") as THREE.SpotLight;
+
+      if (spotLight) {
+        const res = 2 ** Math.floor(5 + 4 * factor);
+
+        if (spotLight.shadow.mapSize.x == res) return;
+
+        spotLight.shadow.mapSize.set(res, res);
+        spotLight.shadow.map?.setSize(res, res);
+
+        console.log(spotLight.shadow.mapSize);
       }
-      console.log(factor);
+      // if (gl) {
+      //   gl.shadowMap.enabled = factor > 0.8;
+      // }
     },
   });
 
@@ -315,6 +283,7 @@ const CameraController = () => {
   });
   return <></>;
 };
+
 interface RigProps extends GroupProps {
   enabled: boolean;
 }
@@ -338,22 +307,23 @@ function Rig({ enabled, ...props }: RigProps) {
   const q = new THREE.Quaternion();
   const toCamera = new THREE.Vector3(0, 0, -1); // Default camera forward direction
   const e = new THREE.Euler();
+
   useFrame((state, delta) => {
     if (!enabled) return;
     if (!isDelayed) return;
 
     easing.dampE(outerRef.current!.rotation, [0, 0, 0], 1, delta); // Initial rotation (first page load)
 
-    easing.damp3(
-      state.camera.position,
-      [
-        -state.pointer.x * 1,
-        state.pointer.y * 0.5 + 1,
-        state.pointer.y / 3 + 9,
-      ],
-      0.3,
-      delta
-    ); // Move camera
+    const cameraPos: THREE.Vector3Tuple = isMobile
+      ? CAMERA_POS
+      : [
+          -state.pointer.x * 1 + CAMERA_POS[0],
+          state.pointer.y * 0.5 + CAMERA_POS[1],
+          state.pointer.y / 3 + CAMERA_POS[2],
+        ];
+
+    // Move camera
+    easing.damp3(state.camera.position, cameraPos, 0.3, delta);
 
     // Compute the direction vector from the camera to the target
     const cameraDirection = v
@@ -377,15 +347,16 @@ function Rig({ enabled, ...props }: RigProps) {
   );
 }
 
-function Carousel({ scrollEnabled, radius = 2 }) {
+function Carousel({ radius = 2 }) {
   const ref = useRef<Group>(null);
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
   const location = useLocation();
+
   useFrame((_, delta) => {
     if (location.pathname == "/about") {
-      store.sceneRotation.y += 0.3 * delta;
+      store.carouselRotation.y += 0.3 * delta;
     }
-    easing.dampE(ref.current!.rotation, store.sceneRotation, 0.1, delta);
+    easing.dampE(ref.current!.rotation, store.carouselRotation, 0.1, delta);
   });
 
   useEffect(() => {
@@ -416,11 +387,11 @@ function Carousel({ scrollEnabled, radius = 2 }) {
     backgroundStore.findClosestObjectId = findClosestObjectId;
 
     const dragUnsub = subscribeKey(store.delta, "drag", () => {
-      store.sceneRotation.y += store.delta.drag.x * 0.005;
+      store.carouselRotation.y += store.delta.drag.x * 0.005;
     });
 
     const wheelUnsub = subscribeKey(store.delta, "wheel", () => {
-      store.sceneRotation.y +=
+      store.carouselRotation.y +=
         (-store.delta.wheel.x + -store.delta.wheel.y) * 0.008;
     });
 
@@ -429,6 +400,42 @@ function Carousel({ scrollEnabled, radius = 2 }) {
       wheelUnsub();
     };
   }, []);
+
+  useEffect(() => {
+    // if any unexpected behavior happens, do check the prevRoute settings in Scene.
+    if (location.pathname === "/") {
+      store.carouselRotation = initialState.carouselRotation;
+    } else if (/\/collections\/\d+/.test(location.pathname)) {
+      store.carouselRotation = initialState.carouselRotation;
+
+      const id = location.pathname.split("/")[2];
+      const obj = ref.current?.getObjectByName(id);
+
+      if (obj) {
+        const prevRouteId = store.prevRoute.split("/")[2];
+        if (prevRouteId) {
+          const prevRouteObj = scene.getObjectByName(prevRouteId);
+          if (prevRouteObj) {
+            const units = getShortestDistance(
+              prevRouteObj.userData.index,
+              obj.userData.index,
+              store.ids.length
+            );
+
+            const rotation =
+              store.carouselRotation.y -
+              units * ((Math.PI * 2) / store.ids.length);
+
+            store.carouselRotation.set(
+              store.carouselRotation.x,
+              rotation,
+              store.carouselRotation.z
+            );
+          }
+        }
+      }
+    }
+  }, [location]);
 
   return (
     <group ref={ref}>
@@ -488,6 +495,7 @@ function Card({
   };
 
   useCursor(hovered);
+
   useFrame((_, delta) => {
     const id = location.pathname.split("/")[2];
     const isObj = id ? imageId == id : false;
@@ -549,34 +557,22 @@ interface SphereProps extends MeshProps {
   radius: number;
 }
 
-function Sphere({ radius, ...props }: SphereProps) {
+function Sphere({ radius }: SphereProps) {
   const [hovered, hover] = useState(false);
 
   const pointerOver = (e: ThreeEvent<PointerEvent>) => (
     e.stopPropagation(), hover(true)
   );
   const pointerOut = () => hover(false);
-  const [distortion, setDistortion] = useState(0.2);
-  const [distortionScale, setDistortionScale] = useState(2);
-  const [transmission, setTransmission] = useState(0.9);
   const [samples, setSamples] = useState(4);
 
   useCursor(hovered);
-  // useFrame((_, delta) => {
-  //   setDistortion((v) => lerp(v, hovered ? 0.5 : 0.2, delta));
-  //   setDistortionScale((v) => lerp(v, hovered ? 0.3 : 2, delta));
-  //   setTransmission((v) => lerp(v, hovered ? 0.7 : 0.9, delta * 2));
-  // });
 
-  const onIncline = () => {
-    setSamples(4);
-  };
-
-  const onDecline = () => {
-    setSamples(1);
-  };
-
-  usePerformanceMonitor({ onIncline, onDecline });
+  usePerformanceMonitor({
+    onChange: ({ factor }) => {
+      setSamples(Math.max(Math.floor(6 * factor - 2), 1));
+    },
+  });
 
   return (
     <mesh
@@ -592,26 +588,24 @@ function Sphere({ radius, ...props }: SphereProps) {
         thickness={5}
         chromaticAberration={0.02}
         // anisotropy={0.05}
-        distortion={distortion}
-        distortionScale={distortionScale}
+        distortion={0.2}
+        distortionScale={2}
         temporalDistortion={0.2}
-        transmission={transmission}
+        transmission={0.9}
       />
     </mesh>
   );
 }
 
 function Ground({ yPos }: { yPos: number }) {
-  const [res, setRes] = useState(2048);
-  const onIncline = () => {
-    setRes(2048);
-  };
+  const [res, setRes] = useState(512);
 
-  const onDecline = () => {
-    setRes(512);
-  };
-
-  usePerformanceMonitor({ onIncline, onDecline });
+  usePerformanceMonitor({
+    onChange: ({ factor }) => {
+      const res = 2 ** Math.floor(7 + 4 * factor);
+      setRes(res);
+    },
+  });
 
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, yPos, 0]}>

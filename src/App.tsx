@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router";
-import Background from "./Background";
 import Wrapper from "./components/Wrapper";
 import MagneticWrapper from "./components/Magnetic";
 import { backgroundStore } from "./stores";
@@ -51,9 +50,9 @@ const Content = () => {
 
 const Links = () => {
   const links = [
-    { name: "Github", url: "#" },
-    { name: "Discord", url: "#" },
-    { name: "LinkedIn", url: "#" },
+    { name: "Github", url: "https://github.com/tim-ming/meaningless" },
+    // { name: "Discord", url: "#" },
+    // { name: "LinkedIn", url: "#" },
   ];
   return (
     <div className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8 text-neutral-400 mix-blend-difference">
