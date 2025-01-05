@@ -12,7 +12,7 @@ const Overlay: React.FC = () => {
 
   useEffect(() => {
     const handleAnimationEnd = () => {
-      ref.current!.classList.add("top-[100%]");
+      ref.current!.classList.add("hidden");
       ref.current!.classList.remove("load-in");
       ref.current!.classList.remove("loading");
       ref.current!.removeEventListener("animationend", handleAnimationEnd);

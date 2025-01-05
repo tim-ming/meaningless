@@ -3,15 +3,25 @@ import MagneticWrapper from "./components/Magnetic";
 import { backgroundStore } from "./stores";
 import { useWindowSize } from "usehooks-ts";
 import { motion } from "motion/react";
-motion;
+import { Helmet } from "react-helmet-async";
 
 const App = () => {
   return (
-    <div className={`p-[var(--padding)] h-full w-full pointer-events-none`}>
-      <Content />
-      <Footer />
-      <Links />
-    </div>
+    <>
+      <Helmet>
+        <title>meaningless</title>
+        <meta
+          name="description"
+          content="meaningless is a simplistic collection of AI-generated images."
+        />
+      </Helmet>
+
+      <div className={`p-[var(--padding)] h-full w-full pointer-events-none`}>
+        <Content />
+        <Footer />
+        <Links />
+      </div>
+    </>
   );
 };
 
