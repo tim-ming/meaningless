@@ -9,7 +9,7 @@ interface NavProps {
 const Nav: React.FC<NavProps> = ({ position = "fixed" }) => {
   return (
     <nav
-      className={`${position} top-0 left-0 flex w-full z-[999] px-[var(--padding)] pointer-events-none bg-white ${
+      className={`${position} top-0 left-0 flex w-full z-[999] px-[var(--padding)] pointer-events-none ${
         position == "fixed" ? "h-[var(--nav-height)]" : ""
       } justify-center`}
     >

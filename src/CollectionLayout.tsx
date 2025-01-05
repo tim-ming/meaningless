@@ -1,7 +1,6 @@
-import { useParams, useNavigate, Outlet } from "react-router";
-import MagneticWrapper from "./components/Magnetic";
-import data from "./assets/collections.json";
 import { useMemo } from "react";
+import { Outlet, useNavigate, useParams } from "react-router";
+import data from "./assets/collections.json";
 
 const CollectionLayout = () => {
   const { id } = useParams(); // Directly get `id` from the URL
@@ -20,12 +19,14 @@ const CollectionLayout = () => {
   }
 
   function next() {
+    if (!id) return;
     const index = d.indexOf(id);
     const to = index === d.length - 1 ? d[0] : d[index + 1];
     navigate(`${to}`);
   }
 
   function prev() {
+    if (!id) return;
     const index = d.indexOf(id);
     const to = index === 0 ? d[d.length - 1] : d[index - 1];
     navigate(`${to}`);

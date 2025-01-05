@@ -106,9 +106,9 @@ a {
 }
 
 .load-in {
-  animation: hide calc(var(--transition-duration) / 2) forwards
+  animation: hide calc(var(--transition-duration) / 1.5) forwards
     cubic-bezier(0.07, 0.87, 0.58, 1);
-  animation-delay: calc(var(--transition-duration) / 1);
+  animation-delay: calc(var(--transition-duration) / 2);
 }
 
 @keyframes hide {

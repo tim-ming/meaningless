@@ -28,7 +28,7 @@ const Overlay: React.FC = () => {
     <>
       <div
         ref={ref}
-        className="fixed w-full h-full top-0 left-0 z-[99999] bg-black"
+        className="fixed w-full h-full top-0 left-0 z-[99999] bg-white"
       >
         <div className="flex w-full h-full justify-center items-center">
           <p className="text-[20vw] tracking-[-1.5vw] font-semibold text-neutral-300">

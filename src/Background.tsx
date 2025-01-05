@@ -17,7 +17,7 @@ import {
 } from "@react-three/fiber";
 import { useGesture } from "@use-gesture/react";
 import { easing } from "maath";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { useLocation, useNavigate } from "react-router";
 import * as THREE from "three";
@@ -28,6 +28,7 @@ import data from "./assets/collections.json";
 import { TRANSITION } from "./helpers/constants";
 import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
+import { createNoise2D, createNoise3D } from "simplex-noise";
 
 interface Store {
   delta: {
@@ -118,7 +119,7 @@ const Scene = () => {
 
   return (
     <>
-      <fog attach="fog" args={["#eee", 4, 20]} />
+      <fog attach="fog" args={["#eee", 4, 15]} />
       <pointLight position={[0, 5, 0]} intensity={2} decay={0} />
       <spotLight
         ref={spotLightRef}
@@ -135,6 +136,7 @@ const Scene = () => {
 
       <Sphere radius={circleRadius} />
       <Ground yPos={-circleRadius} />
+      <DustParticles />
     </>
   );
 };
@@ -248,7 +250,7 @@ function Rig({ ...props }: RigProps) {
           pointer.y / 3 + target[2],
         ];
 
-    easing.damp3(camera.position, cameraPos, 0.3, delta);
+    easing.damp3(camera.position, cameraPos, 0.4, delta);
   }
 
   /**
@@ -298,8 +300,8 @@ function Rig({ ...props }: RigProps) {
       return;
     }
 
-    easing.damp3(camera.position, targetPos, 0.3, delta);
-    easing.dampE(camera.rotation, targetRot, 0.3, delta);
+    easing.damp3(camera.position, targetPos, 0.5, delta);
+    easing.dampE(camera.rotation, targetRot, 0.5, delta);
   }
 
   /**
@@ -387,6 +389,9 @@ function Rig({ ...props }: RigProps) {
     } else if (location.pathname === "/about") {
       cameraTarget.current.pos.set(0, 2, 5);
       cameraTarget.current.rot.set(-0.2, 0, -Math.PI / 2.2);
+    } else if (location.pathname === "/404") {
+      cameraTarget.current.pos.set(0, 10, 0);
+      cameraTarget.current.rot.set(-Math.PI / 2, 0, 0);
     }
     prevRoute.current = location.pathname;
   }, [location.pathname]);
@@ -394,7 +399,6 @@ function Rig({ ...props }: RigProps) {
   // render loop
   useFrame((state, delta) => {
     if (!isDelayed) return;
-
     if (location.pathname === "/") {
       pointerMoveCamera(CAMERA_POS, state.pointer, state.camera, delta);
       rotateCamera(SCENE_CENTER, state.camera, delta);
@@ -412,11 +416,7 @@ function Rig({ ...props }: RigProps) {
     rotateCarousel(delta, carouselRotation.current);
   });
 
-  return (
-    <group rotation={[0, 2, 0]}>
-      <group ref={carouselRef} {...props} />
-    </group>
-  );
+  return <group ref={carouselRef} {...props} />;
 }
 
 function Carousel({ radius = 2 }) {
@@ -547,12 +547,12 @@ function Sphere({ radius }: SphereProps) {
   const [hovered, hover] = useState(false);
   const [samples, setSamples] = useState(4);
 
-  const pointerOver = (e: ThreeEvent<PointerEvent>) => (
-    e.stopPropagation(), hover(true)
-  );
-  const pointerOut = () => hover(false);
+  // const pointerOver = (e: ThreeEvent<PointerEvent>) => (
+  //   e.stopPropagation(), hover(true)
+  // );
+  // const pointerOut = () => hover(false);
 
-  useCursor(hovered);
+  // useCursor(hovered);
 
   usePerformanceMonitor({
     onChange: ({ factor }) => {
@@ -564,8 +564,8 @@ function Sphere({ radius }: SphereProps) {
     <mesh
       position={[0, 0, 0]}
       castShadow
-      onPointerOver={pointerOver}
-      onPointerOut={pointerOut}
+      // onPointerOver={pointerOver}
+      // onPointerOut={pointerOut}
     >
       <sphereGeometry args={[radius, 64, 32]} />
       <MeshTransmissionMaterial
@@ -588,7 +588,7 @@ function Ground({ yPos }: { yPos: number }) {
 
   usePerformanceMonitor({
     onChange: ({ factor }) => {
-      const res = 2 ** Math.floor(7 + 4 * factor);
+      const res = 2 ** Math.max(Math.floor(7 + 4 * factor), 8);
       setRes(res);
     },
   });
@@ -612,3 +612,77 @@ function Ground({ yPos }: { yPos: number }) {
     </mesh>
   );
 }
+
+const DustParticles = ({ count = 1000, radius = 10 }) => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const speed = 0.002;
+  const noise = useMemo(() => createNoise3D(), []);
+
+  // Precompute particle positions and velocities
+  const particles = useMemo(() => {
+    const positions = [];
+    const velocities = [];
+    for (let i = 0; i < count; i++) {
+      const phi = Math.random() * 2 * Math.PI;
+      const theta = Math.acos(2 * Math.random() - 1);
+      const r = Math.random() * radius;
+
+      const x = r * Math.sin(theta) * Math.cos(phi);
+      const y = r * Math.sin(theta) * Math.sin(phi);
+      const z = r * Math.cos(theta);
+
+      positions.push(new THREE.Vector3(x, y, z));
+      velocities.push(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * speed,
+          (Math.random() - 0.5) * speed,
+          (Math.random() - 0.5) * speed
+        )
+      );
+    }
+    return { positions, velocities };
+  }, [count, radius]);
+
+  // Update particles on every frame
+  useFrame(({ clock }) => {
+    const time = clock.getElapsedTime();
+    for (let i = 0; i < count; i++) {
+      const particle = particles.positions[i];
+      const velocity = particles.velocities[i];
+
+      // Update particle position
+      particle.add(velocity);
+
+      // Keep particles within bounds (wrap around)
+      if (particle.length() > radius) {
+        particle.set(
+          Math.random() * radius - radius / 2,
+          Math.random() * radius - radius / 2,
+          Math.random() * radius - radius / 2
+        );
+      }
+
+      // Update dummy object and set matrix for instancing
+      dummy.position.copy(particle);
+      // Calculate sparkle brightness (sin-based for smooth transitions)
+      dummy.scale.setScalar(
+        0.5 + noise(particle.x * 2, particle.y * 2, particle.z * 2) * 0.5
+      ); // Scale particles with sparkle
+      dummy.updateMatrix();
+      meshRef.current!.setMatrixAt(i, dummy.matrix);
+    }
+    meshRef.current!.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      position={[0, 0, -3]}
+      ref={meshRef}
+      args={[undefined, undefined, count]}
+    >
+      <sphereGeometry args={[0.02, 4, 4]} />
+      <meshBasicMaterial color="#eee" transparent />
+    </instancedMesh>
+  );
+};

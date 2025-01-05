@@ -3,16 +3,16 @@ import Wrapper from "./components/Wrapper";
 import MagneticWrapper from "./components/Magnetic";
 import { backgroundStore } from "./stores";
 import { useWindowSize } from "usehooks-ts";
+import { motion } from "motion/react";
+motion;
 
 const App = () => {
   return (
-    <>
-      <Wrapper extraClassName="pointer-events-none">
-        <Content />
-        <Footer />
-        <Links />
-      </Wrapper>
-    </>
+    <div className={`p-[var(--padding)] h-full w-full pointer-events-none`}>
+      <Content />
+      <Footer />
+      <Links />
+    </div>
   );
 };
 
@@ -28,7 +28,12 @@ const Content = () => {
     }
   };
   return (
-    <main className="absolute top-[calc(var(--nav-height)+15%-4rem)] sm:top-[15%] left-0 right-0">
+    <motion.main
+      animate={{ opacity: 1, translateY: "0" }}
+      initial={{ opacity: 0, translateY: "-20px" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="absolute top-[calc(var(--nav-height)+15%-4rem)] sm:top-[15%] left-0 right-0"
+    >
       <div className="flex-col flex gap-4 sm:gap-8 items-center justify-center">
         <h1 className="text-4xl sm:text-5xl font-semibold leading-[1.05] tracking-[-0.05em] text-center max-w-sm sm:max-w-lg md:max-w-xl">
           Within every picture holds no story.
@@ -44,7 +49,7 @@ const Content = () => {
           </MagneticWrapper>
         </span>
       </div>
-    </main>
+    </motion.main>
   );
 };
 
@@ -55,7 +60,12 @@ const Links = () => {
     // { name: "LinkedIn", url: "#" },
   ];
   return (
-    <div className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8 text-neutral-400 mix-blend-difference">
+    <motion.div
+      animate={{ opacity: 1, translateY: "0" }}
+      initial={{ opacity: 0, translateY: "20px" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8 text-neutral-400 mix-blend-difference"
+    >
       <div className="flex flex-col gap-4 items-end">
         <ul className="flex flex-col space-y-1 sm:space-y-2 text-sm sm:text-[16px]">
           {links.map((link, index) => (
@@ -73,14 +83,19 @@ const Links = () => {
         </ul>
         <p className="text-sm text-neutral-100">© 2024 timming</p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
 const Footer = () => {
   const { width, height } = useWindowSize();
   return (
-    <footer className="absolute bottom-0 text-sm sm:text-[16px] left-0 flex p-[inherit] leading-[1.05] tracking-[-0.05em] text-neutral-400 mix-blend-difference">
+    <motion.footer
+      animate={{ opacity: 1, translateY: "0" }}
+      initial={{ opacity: 0, translateY: "20px" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="absolute bottom-0 text-sm sm:text-[16px] left-0 flex p-[inherit] leading-[1.05] tracking-[-0.05em] text-neutral-400 mix-blend-difference"
+    >
       <div className="flex flex-col">
         {width > 500 && height > 500 ? (
           <>
@@ -109,7 +124,7 @@ const Footer = () => {
           </>
         )}
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 
