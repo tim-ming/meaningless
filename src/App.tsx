@@ -55,7 +55,7 @@ const Content = () => {
 
 const Links = () => {
   const links = [
-    { name: "Github", url: "https://github.com/tim-ming/meaningless" },
+    { name: "Github", url: "https://github.com/tim-ming" },
     // { name: "Discord", url: "#" },
     // { name: "LinkedIn", url: "#" },
   ];
