@@ -544,7 +544,7 @@ interface SphereProps extends MeshProps {
 }
 
 function Sphere({ radius }: SphereProps) {
-  const [hovered, hover] = useState(false);
+  // const [hovered, hover] = useState(false);
   const [samples, setSamples] = useState(4);
 
   // const pointerOver = (e: ThreeEvent<PointerEvent>) => (
@@ -645,7 +645,7 @@ const DustParticles = ({ count = 1000, radius = 10 }) => {
   }, [count, radius]);
 
   // Update particles on every frame
-  useFrame(({ clock }) => {
+  useFrame(() => {
     for (let i = 0; i < count; i++) {
       const particle = particles.positions[i];
       const velocity = particles.velocities[i];
