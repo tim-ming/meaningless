@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router";
-import Wrapper from "./components/Wrapper";
 import MagneticWrapper from "./components/Magnetic";
 import { backgroundStore } from "./stores";
 import { useWindowSize } from "usehooks-ts";

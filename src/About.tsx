@@ -1,14 +1,12 @@
-import React from "react";
-import Wrapper from "./components/Wrapper";
-import Nav from "./components/Nav";
 import { motion } from "motion/react";
+import React from "react";
 const About: React.FC = () => {
   return (
     <motion.main
       animate={{ opacity: 1, translateX: "0" }}
       initial={{ opacity: 0, translateX: "20px" }}
       transition={{ duration: 0.7, ease: "easeOut" }}
-      className="flex flex-col justify-center min-h-full p-8 absolute w-screen backdrop-blur-none sm:backdrop-blur-none bg-white bg-opacity-50 sm:bg-transparent"
+      className="flex flex-col justify-center min-h-full p-[var(--padding)] absolute w-screen backdrop-blur-none sm:backdrop-blur-none bg-white bg-opacity-50 sm:bg-transparent"
     >
       <h1 className="text-5xl tracking-[-0.05em] font-bold mb-8 text-neutral-800">
         About

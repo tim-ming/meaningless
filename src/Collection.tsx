@@ -1,5 +1,4 @@
-import { useNavigate, useParams } from "react-router";
-import MagneticWrapper from "./components/Magnetic";
+import { useParams } from "react-router";
 import data from "./assets/collections.json";
 
 const Collection: React.FC = () => {

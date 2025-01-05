@@ -20,6 +20,7 @@ import { easing } from "maath";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { useLocation, useNavigate } from "react-router";
+import { createNoise3D } from "simplex-noise";
 import * as THREE from "three";
 import { Group } from "three";
 import { proxy } from "valtio";
@@ -28,7 +29,6 @@ import data from "./assets/collections.json";
 import { TRANSITION } from "./helpers/constants";
 import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
-import { createNoise2D, createNoise3D } from "simplex-noise";
 
 interface Store {
   delta: {
@@ -181,23 +181,23 @@ function Rig({ ...props }: RigProps) {
     pos: THREE.Vector3;
     rot: THREE.Euler;
   } {
-    // Get the object's world quaternion and position
+    // Get object's world quaternion and position
     obj.getWorldQuaternion(q1);
     obj.getWorldPosition(v);
 
-    // Calculate the direction vector from the target position to the object
+    // Calculate direction vector from target position to object
     const direction = new THREE.Vector3(0, 0, 1)
       .applyQuaternion(q1)
       .normalize();
 
-    // Calculate the target position
+    // Calculate target position
     const targetPos = v.clone().sub(direction.multiplyScalar(distance));
 
-    // Compute the quaternion for the camera to face v
+    // Compute quaternion for camera to face v
     const lookDirection = v.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to v
     const cameraQuaternion = q2.setFromUnitVectors(toCamera, lookDirection);
 
-    // Adjust the camera's rotation
+    // Adjust camera's rotation
     const cameraRotation = e.setFromQuaternion(cameraQuaternion);
 
     return {
@@ -290,7 +290,7 @@ function Rig({ ...props }: RigProps) {
     const currentPos = camera.position;
     const currentRot = camera.rotation;
 
-    // Check if position and rotation differences are below the threshold
+    // Check if position and rotation differences are below threshold
     const posDone = currentPos.distanceTo(targetPos) < THRESHOLD;
     const rotDone =
       q1.setFromEuler(currentRot).angleTo(q2.setFromEuler(targetRot)) <
@@ -314,9 +314,9 @@ function Rig({ ...props }: RigProps) {
   }
 
   // one-time onmount effects:
-  // subscribe to drag and wheel events, assign findClosestObjectId to the store
+  // subscribe to drag and wheel events, assign findClosestObjectId to store
   useEffect(() => {
-    // Delay the useFrame execution by 1 second
+    // Delay useFrame execution by 1 second
     const timeout = setTimeout(() => {
       setIsDelayed(true);
     }, TRANSITION.DURATION_S / 2);
@@ -344,7 +344,7 @@ function Rig({ ...props }: RigProps) {
       return closest ? closest.name : null;
     };
 
-    // Assign the function to the Valtio store
+    // Assign function to Valtio store
     backgroundStore.findClosestObjectId = findClosestObjectId;
 
     const dragUnsub = subscribeKey(store.delta, "drag", () => {
@@ -372,7 +372,7 @@ function Rig({ ...props }: RigProps) {
       if (currentRouteObj) {
         const prevRouteId = prevRoute.current.split("/")[2];
         if (!prevRouteId) {
-          // lock camera to the object
+          // lock camera to object
           const { pos, rot } = calculateCameraTarget(currentRouteObj, 2.5);
 
           cameraTarget.current.pos.copy(pos);
@@ -646,7 +646,6 @@ const DustParticles = ({ count = 1000, radius = 10 }) => {
 
   // Update particles on every frame
   useFrame(({ clock }) => {
-    const time = clock.getElapsedTime();
     for (let i = 0; i < count; i++) {
       const particle = particles.positions[i];
       const velocity = particles.velocities[i];
