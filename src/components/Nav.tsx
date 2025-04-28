@@ -1,5 +1,5 @@
 import React from "react";
-import Logo from "../assets/logo.svg";
+import Logo from "../assets/tm.svg?react";
 import { Link } from "react-router";
 
 interface NavProps {
@@ -13,8 +13,8 @@ const Nav: React.FC<NavProps> = ({ position = "fixed" }) => {
         position == "fixed" ? "h-[var(--nav-height)]" : ""
       } justify-center`}
     >
-      <Link to="/" className="flex flex-1 items-center">
-        <img src={Logo} alt="logo" className="w-9 sm:w-12" />
+      <Link to="/" className="flex flex-1 items-center text-black">
+        <Logo className="w-10 h-auto [&>*]:stroke-black" />
       </Link>
       <span className="flex flex-1 justify-end items-center gap-8">
         <Link to="/about" className="text-sm font-medium hover:underline">
