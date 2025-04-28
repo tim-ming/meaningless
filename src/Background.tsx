@@ -554,11 +554,12 @@ function Sphere({ radius }: SphereProps) {
 
   // useCursor(hovered);
 
-  usePerformanceMonitor({
-    onChange: ({ factor }) => {
-      setSamples(Math.max(Math.floor(6 * factor - 2), 1));
-    },
-  });
+  // Commented out because causes freezing when changing samples
+  // usePerformanceMonitor({
+  //   onChange: ({ factor }) => {
+  //     setSamples(Math.max(Math.floor(6 * factor - 2), 1));
+  //   },
+  // });
 
   return (
     <mesh
