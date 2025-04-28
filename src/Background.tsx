@@ -545,7 +545,7 @@ interface SphereProps extends MeshProps {
 
 function Sphere({ radius }: SphereProps) {
   // const [hovered, hover] = useState(false);
-  const [samples, setSamples] = useState(4);
+  // const [samples, setSamples] = useState(4);
 
   // const pointerOver = (e: ThreeEvent<PointerEvent>) => (
   //   e.stopPropagation(), hover(true)
@@ -561,6 +561,7 @@ function Sphere({ radius }: SphereProps) {
   //   },
   // });
 
+  const samples = 4; // Hardcoded for now, as changing samples causes freezing
   return (
     <mesh
       position={[0, 0, 0]}
