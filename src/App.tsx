@@ -73,7 +73,7 @@ const Links = () => {
       animate={{ opacity: 1, translateY: "0" }}
       initial={{ opacity: 0, translateY: "20px" }}
       transition={{ duration: 0.7, ease: "easeOut" }}
-      className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8 text-neutral-400 mix-blend-difference"
+      className="absolute bottom-0 right-0 flex p-[inherit] items-end gap-8  text-neutral-500"
     >
       <div className="flex flex-col gap-4 items-end">
         <ul className="flex flex-col space-y-1 sm:space-y-2 text-sm sm:text-[16px]">
@@ -90,7 +90,7 @@ const Links = () => {
             </li>
           ))}
         </ul>
-        <p className="text-sm text-neutral-100">© 2024 timming</p>
+        <p className="text-sm text-neutral-900">© 2024 timming</p>
       </div>
     </motion.div>
   );
@@ -103,7 +103,7 @@ const Footer = () => {
       animate={{ opacity: 1, translateY: "0" }}
       initial={{ opacity: 0, translateY: "20px" }}
       transition={{ duration: 0.7, ease: "easeOut" }}
-      className="absolute bottom-0 text-sm sm:text-[16px] left-0 flex p-[inherit] leading-[1.05] tracking-[-0.05em] text-neutral-400 mix-blend-difference"
+      className="absolute bottom-0 text-sm sm:text-[16px] left-0 flex p-[inherit] leading-[1.05] tracking-[-0.05em] text-neutral-500"
     >
       <div className="flex flex-col">
         {width > 500 && height > 500 ? (
