@@ -36,7 +36,6 @@ import data from "./assets/collections.json";
 import { TRANSITION } from "./helpers/constants";
 import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
-import { Perf } from "r3f-perf";
 
 interface Store {
   delta: {
@@ -94,7 +93,6 @@ export default function Background() {
           frameloop="always"
         >
           <Suspense fallback={null}>
-            <Perf />
             <PerformanceMonitor flipflops={3}>
               <Scene />
             </PerformanceMonitor>
