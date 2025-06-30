@@ -17,7 +17,14 @@ import {
 } from "@react-three/fiber";
 import { useGesture } from "@use-gesture/react";
 import { easing } from "maath";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { isMobile } from "react-device-detect";
 import { useLocation, useNavigate } from "react-router";
 import { createNoise3D } from "simplex-noise";
@@ -29,6 +36,7 @@ import data from "./assets/collections.json";
 import { TRANSITION } from "./helpers/constants";
 import { getShortestDistance, RoundedRectangle } from "./helpers/utils";
 import { backgroundStore } from "./stores";
+import { Perf } from "r3f-perf";
 
 interface Store {
   delta: {
@@ -52,7 +60,7 @@ const initialState: Store = {
 
 const store: Store = proxy<Store>({ ...initialState });
 
-export default function Background({}) {
+export default function Background() {
   const location = useLocation();
   const bind = useGesture({
     onWheel: ({ delta: [deltaX, deltaY] }) => {
@@ -80,11 +88,13 @@ export default function Background({}) {
       >
         <Canvas
           camera={{ position: [0, 0, 5], fov: 60 }}
+          dpr={[1, 1.5]}
           eventPrefix="client"
-          shadows
+          shadows={isMobile ? false : true}
           frameloop="always"
         >
           <Suspense fallback={null}>
+            <Perf />
             <PerformanceMonitor flipflops={3}>
               <Scene />
             </PerformanceMonitor>
@@ -100,11 +110,11 @@ const Scene = () => {
   const radius = 2;
   const circleRadius = radius / 1.8;
   const spotLightRef = useRef<THREE.SpotLight>(null);
-  const { gl } = useThree();
+  // const { gl } = useThree();
 
   usePerformanceMonitor({
     onChange: ({ factor }) => {
-      gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
+      // gl.pixelRatio = Math.min(Math.floor(0.5 + 1.5 * factor), 1);
 
       if (spotLightRef.current) {
         const res = 2 ** Math.floor(5 + 4 * factor);
@@ -141,7 +151,7 @@ const Scene = () => {
   );
 };
 
-interface RigProps extends GroupProps {}
+type RigProps = GroupProps;
 
 function Rig({ ...props }: RigProps) {
   const [isDelayed, setIsDelayed] = useState(false);
@@ -160,13 +170,13 @@ function Rig({ ...props }: RigProps) {
   const THRESHOLD = 0.001;
 
   // variables, for memory allocation
-  const v = new THREE.Vector3();
-  const toCamera = new THREE.Vector3(0, 0, -1); // Default camera forward direction
-  const e = new THREE.Euler();
+  const v = useMemo(() => new THREE.Vector3(), []);
+  const toCamera = useMemo(() => new THREE.Vector3(0, 0, -1), []); // Default camera forward direction
+  const e = useMemo(() => new THREE.Euler(), []);
   const [q1, q2] = [new THREE.Quaternion(), new THREE.Quaternion()];
   const CAMERA_POS: THREE.Vector3Tuple = [0, 1, 9];
   const SCENE_CENTER = new THREE.Vector3(0, 0, 0);
-  const CLOSE_UP_OFFSET = new THREE.Vector3(0, 0.2, 0);
+  const CLOSE_UP_OFFSET = useMemo(() => new THREE.Vector3(0, 0.2, 0), []);
 
   /**
    * Calculate camera target position and rotation to face object
@@ -174,37 +184,40 @@ function Rig({ ...props }: RigProps) {
    * @param distance Distance from object
    * @returns Camera target position and rotation
    */
-  function calculateCameraTarget(
-    obj: THREE.Object3D,
-    distance = 2
-  ): {
-    pos: THREE.Vector3;
-    rot: THREE.Euler;
-  } {
-    // Get object's world quaternion and position
-    obj.getWorldQuaternion(q1);
-    obj.getWorldPosition(v);
+  const calculateCameraTarget = useCallback(
+    (
+      obj: THREE.Object3D,
+      distance = 2
+    ): {
+      pos: THREE.Vector3;
+      rot: THREE.Euler;
+    } => {
+      // Get object's world quaternion and position
+      obj.getWorldQuaternion(q1);
+      obj.getWorldPosition(v);
 
-    // Calculate direction vector from target position to object
-    const direction = new THREE.Vector3(0, 0, 1)
-      .applyQuaternion(q1)
-      .normalize();
+      // Calculate direction vector from target position to object
+      const direction = new THREE.Vector3(0, 0, 1)
+        .applyQuaternion(q1)
+        .normalize();
 
-    // Calculate target position
-    const targetPos = v.clone().sub(direction.multiplyScalar(distance));
+      // Calculate target position
+      const targetPos = v.clone().sub(direction.multiplyScalar(distance));
 
-    // Compute quaternion for camera to face v
-    const lookDirection = v.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to v
-    const cameraQuaternion = q2.setFromUnitVectors(toCamera, lookDirection);
+      // Compute quaternion for camera to face v
+      const lookDirection = v.clone().sub(targetPos).normalize(); // Vector pointing from targetPos to v
+      const cameraQuaternion = q2.setFromUnitVectors(toCamera, lookDirection);
 
-    // Adjust camera's rotation
-    const cameraRotation = e.setFromQuaternion(cameraQuaternion);
+      // Adjust camera's rotation
+      const cameraRotation = e.setFromQuaternion(cameraQuaternion);
 
-    return {
-      pos: targetPos.add(CLOSE_UP_OFFSET),
-      rot: cameraRotation,
-    };
-  }
+      return {
+        pos: targetPos.add(CLOSE_UP_OFFSET),
+        rot: cameraRotation,
+      };
+    },
+    [q1, v, q2, toCamera, e, CLOSE_UP_OFFSET]
+  );
 
   /**
    * Get rotation for carousel to rotate to next route
@@ -212,22 +225,26 @@ function Rig({ ...props }: RigProps) {
    * @param currentRouteObj Current route object
    * @returns
    */
-  function getCarouselRotation(
-    prevRouteId: string,
-    currentRouteObj: THREE.Object3D
-  ) {
-    const prevRouteObj = scene.getObjectByName(prevRouteId);
-    if (prevRouteObj) {
-      const units = getShortestDistance(
-        prevRouteObj.userData.index,
-        currentRouteObj.userData.index,
-        ids.length
-      );
+  const getCarouselRotation = useCallback(
+    (prevRouteId: string, currentRouteObj: THREE.Object3D) => {
+      const prevRouteObj = scene.getObjectByName(prevRouteId);
+      if (prevRouteObj) {
+        const units = getShortestDistance(
+          prevRouteObj.userData.index,
+          currentRouteObj.userData.index,
+          ids.length
+        );
 
-      return e.set(0, -units * ((Math.PI * 2) / ids.length), 0) as THREE.Euler;
-    }
-    return e.set(0, 0, 0) as THREE.Euler;
-  }
+        return e.set(
+          0,
+          -units * ((Math.PI * 2) / ids.length),
+          0
+        ) as THREE.Euler;
+      }
+      return e.set(0, 0, 0) as THREE.Euler;
+    },
+    [scene, ids, e]
+  );
 
   /**
    * Move camera, affected by pointer movement
@@ -361,7 +378,7 @@ function Rig({ ...props }: RigProps) {
       wheelUnsub();
       clearTimeout(timeout);
     };
-  }, []);
+  }, [camera.position]);
 
   // route change effects
   useEffect(() => {
@@ -394,7 +411,7 @@ function Rig({ ...props }: RigProps) {
       cameraTarget.current.rot.set(-Math.PI / 2, 0, 0);
     }
     prevRoute.current = location.pathname;
-  }, [location.pathname]);
+  }, [calculateCameraTarget, getCarouselRotation, scene]);
 
   // render loop
   useFrame((state, delta) => {
@@ -576,9 +593,9 @@ function Sphere({ radius }: SphereProps) {
         thickness={5}
         chromaticAberration={0.02}
         // anisotropy={0.05}
-        distortion={0.2}
-        distortionScale={2}
-        temporalDistortion={0.2}
+        // distortion={0.2}
+        // distortionScale={2}
+        // temporalDistortion={0.2}
         transmission={0.9}
       />
     </mesh>
@@ -586,13 +603,13 @@ function Sphere({ radius }: SphereProps) {
 }
 
 function Ground({ yPos }: { yPos: number }) {
-  const [res, setRes] = useState(512);
+  const [res] = useState(512);
 
   usePerformanceMonitor({
-    onChange: ({ factor }) => {
-      const res = 2 ** Math.max(Math.floor(7 + 4 * factor), 8);
-      setRes(res);
-    },
+    // onChange: ({ factor }) => {
+    //   const res = 2 ** Math.max(Math.floor(7 + 4 * factor), 8);
+    //   setRes(res);
+    // },
   });
 
   return (

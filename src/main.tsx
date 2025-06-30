@@ -35,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>
 );
 
+// eslint-disable-next-line react-refresh/only-export-components
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -53,6 +54,7 @@ function AnimatedRoutes() {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function InitialiseCSSVariable() {
   useEffect(() => {
     document.documentElement.style.setProperty(

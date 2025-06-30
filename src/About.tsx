@@ -21,11 +21,11 @@ const About: React.FC = () => {
           About.
         </h1>
         <p className="text-neutral-700 mb-4">
-          A display of AI generated images.
+          A collection of AI generated slop.
         </p>
         <div className="text-neutral-500 text-sm leading-4">
-          <p>Images generated with AOM3A3_orangemixs.</p>
-          <p>Labelled by Google Gemini Flash 1.5.</p>
+          <p>Images generated with AI.</p>
+          <p>Labelled (names) with AI as well.</p>
         </div>
       </motion.main>
     </>
